@@ -3,30 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Curriculum Vitae — Muhammad Alvin Firdaus</title>
+  <title>Curriculum Vitae — Muhammad Alfin Firdaus</title>
   <meta name="description" content="Curriculum Vitae ringkas dan profesional sesuai kaidah PUEBI/ EYD." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0b0d10;
-      --card:#12161b;
-      --text:#e7edf3;
-      --muted:#a9b6c3;
-      --accent:#63b3ed; /* biru modern */
-      --chip:#1b222a;
-      --border:#212a33;
+      --bg:#0b0d10; --card:#12161b; --text:#e7edf3; --muted:#a9b6c3;
+      --accent:#63b3ed; --chip:#1b222a; --border:#212a33;
     }
     @media (prefers-color-scheme: light){
       :root{
-        --bg:#f7fafc;
-        --card:#ffffff;
-        --text:#0f1720;
-        --muted:#5b6773;
-        --accent:#2563eb;
-        --chip:#eef2f7;
-        --border:#e6ecf2;
+        --bg:#f7fafc; --card:#ffffff; --text:#0f1720; --muted:#5b6773;
+        --accent:#2563eb; --chip:#eef2f7; --border:#e6ecf2;
       }
     }
     *{box-sizing:border-box}
@@ -48,48 +38,50 @@
     .item{padding:14px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.02))}
     .item h3{margin:0 0 4px 0;font-size:16px}
     .item .subtitle{color:var(--muted);font-size:14px}
-    .item .time{margin-top:6px;font-size:13px;color:var(--muted)}
     .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .badge{border:1px dashed var(--border);padding:6px 10px;border-radius:10px;font-size:13px}
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .kpi{display:flex;gap:10px;align-items:center}
-    .kpi strong{font-size:18px}
     footer{margin-top:20px;text-align:center;color:var(--muted);font-size:12px}
 
-    /* timeline */
     .timeline{position:relative}
     .timeline::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
     .tl{position:relative;padding-left:28px}
     .dot{position:absolute;left:3px;top:6px;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent)}
 
-    /* print */
+    @page { margin: 12mm; } 
     @media print{
       :root{--bg:#ffffff;--card:#ffffff;--text:#000000;--muted:#444;--accent:#111827;--chip:#f3f4f6;--border:#e5e7eb}
+      body{line-height:1.25}
       .container{max-width:none;padding:0}
-      .cv{grid-template-columns:300px 1fr}
+      .cv{grid-template-columns:300px 1fr;gap:12px}
+      .left,.right{gap:10px}
+      header.hero{gap:10px}
+      .avatar{width:72px;height:72px;border-radius:12px}
+      .meta{margin-top:8px;gap:6px}
+      .pad{padding:12px}
+      .section h2{margin:0 0 8px 0}
+      .list{gap:8px}
+      .item{padding:10px;border-radius:10px}
+      .grid-2{gap:8px}
       .item, .card{break-inside:avoid}
-      .print-hide{display:none!important}
+      .print-hide, footer{display:none!important}
       a{text-decoration:underline}
     }
 
-    /* responsive */
-    @media (max-width:860px){
-      .cv{grid-template-columns:1fr}
-    }
+    @media (max-width:860px){ .cv{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Tombol Aksi Cepat -->
+
     <div class="print-hide" style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:12px">
       <button onclick="window.print()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer">Unduh / Cetak PDF</button>
     </div>
-
     <div class="cv">
       <aside class="left">
         <div class="card pad">
           <header class="hero">
-            <img class="avatar" id="avatar" src="upload/ganteng.jpeg" alt="Foto Profil" onerror="fallbackAvatar(this)" />
+            <img class="avatar" id="avatar" src="upload/ganteng.jpeg?v=1" alt="Foto Profil" onerror="fallbackAvatar(this)" />
             <div>
               <h1>Muhammad Alfin Firdaus</h1>
               <div class="role">Basic Pemrograman</div>
@@ -114,7 +106,25 @@
             <span class="badge">Basis Data</span>
           </div>
         </section>
-        </aside>
+
+        <section class="card pad section">
+          <h2>Keahlian Teknis</h2>
+          <div class="grid-2">
+            <div class="item">
+              <h3>Bahasa & Kerangka</h3>
+              <div class="badges">
+                <span class="badge">PHP Murni</span><span class="badge">Laravel</span><span class="badge">Next.js</span>
+              </div>
+            </div>
+            <div class="item">
+              <h3>Basis Data</h3>
+              <div class="badges">
+                <span class="badge">MySQL</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
 
       <main class="right">
         <section class="card pad section">
@@ -136,33 +146,25 @@
         </section>
 
         <section class="card pad section">
-          <h2>Keahlian Teknis</h2>
-          <div class="grid-2">
-            <div class="item">
-              <h3>Bahasa & Kerangka</h3>
-              <div class="badges">
-                <span class="badge">PHP</span><span class="badge">Laravel</span><span class="badge">Next.js</span>
-              </div>
-            </div>
-            <div class="item">
-              <h3>Basis Data</h3>
-              <div class="badges">
-                <span class="badge">MySQL</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      
-        <section class="card pad section">
           <h2>Pengalaman Kerja</h2>
           <div class="list">
             <div class="item">
               <h3>Admin Toko Online</h3>
-              <div class="subtitle">Lamongan • 2020 – 2023</div>
-              <ul style="margin:10px 0 0 16px;color:var(--muted)">
+              <div class="subtitle">AWEES Lamongan • 2020 – 2023</div>
+              <ul style="margin:6px 0 0 16px;color:var(--muted)">
                 <li>Mengelola pesanan dan memastikan proses pengiriman berjalan lancar.</li>
                 <li>Menangani komunikasi dengan pelanggan melalui media sosial dan platform e-commerce.</li>
                 <li>Mengatur stok barang dan pembaruan katalog produk.</li>
+              </ul>
+            </div>
+            <div class="list">
+            <div class="item">
+              <h3>Magang — Komisi Pemilihan Umum (KPU)</h3>
+              <div class="subtitle">Jalan Basuki Rahmad No. 207, Lamongan • Juni 2024 – Juli 2024</div>
+              <ul style="margin:6px 0 0 16px;color:var(--muted)">
+                <li>Mendukung input dan validasi data pemilih pada sistem internal.</li>
+                <li>Menyiapkan dokumen administrasi, surat-menyurat, dan penataan arsip.</li>
+                <li>Berkoordinasi dengan tim untuk kebutuhan logistik dan kegiatan sosialisasi.</li>
               </ul>
             </div>
           </div>
@@ -170,20 +172,22 @@
       </main>
     </div>
 
-    <footer>
-      <p>DIbuat oleh M Alvin Firdaus </p>
+    <footer class="print-hide">
+      <p>Dibuat oleh M. Alfin Firdaus</p>
     </footer>
   </div>
 
   <script>
+
     function fallbackAvatar(img){
-      const tries = ["uploads/foto-profil.jpg", "uploads/foto-profil.png", "uploads/foto-profil.webp"];
+      const tries = [
+        "upload/ganteng.jpg",
+        "upload/ganteng.png",
+        "upload/ganteng.webp"
+      ];
       let i = 0;
       function next(){
-        if(i >= tries.length){
-          console.warn('Avatar tidak ditemukan pada ekstensi umum.');
-          return;
-        }
+        if(i >= tries.length){ console.warn('Avatar tidak ditemukan pada ekstensi umum.'); return; }
         const url = tries[i] + '?v=' + Date.now();
         i++;
         const tester = new Image();
@@ -196,4 +200,3 @@
   </script>
 </body>
 </html>
-
