@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Curriculum Vitae — Muhammad Alvin Firdaus</title>
+  <meta name="description" content="Curriculum Vitae ringkas dan profesional sesuai kaidah PUEBI/ EYD." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0d10;
+      --card:#12161b;
+      --text:#e7edf3;
+      --muted:#a9b6c3;
+      --accent:#63b3ed; /* biru modern */
+      --chip:#1b222a;
+      --border:#212a33;
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f7fafc;
+        --card:#ffffff;
+        --text:#0f1720;
+        --muted:#5b6773;
+        --accent:#2563eb;
+        --chip:#eef2f7;
+        --border:#e6ecf2;
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";}
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:980px;margin-inline:auto;padding:28px;}
+    .cv{display:grid;grid-template-columns:320px 1fr;gap:24px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px}
+    .left,.right{display:flex;flex-direction:column;gap:18px}
+    .pad{padding:22px}
+    header.hero{display:flex;gap:18px;align-items:center}
+    .avatar{width:88px;height:88px;border-radius:16px;object-fit:cover;border:2px solid var(--border)}
+    h1{font-size:28px;line-height:1.2;margin:0 0 6px 0}
+    .role{font-weight:600;color:var(--muted)}
+    .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .chip{background:var(--chip);border:1px solid var(--border);padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted)}
+    .section h2{font-size:16px;letter-spacing:.2px;text-transform:uppercase;color:var(--muted);margin:0 0 14px 0}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .item{padding:14px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.02))}
+    .item h3{margin:0 0 4px 0;font-size:16px}
+    .item .subtitle{color:var(--muted);font-size:14px}
+    .item .time{margin-top:6px;font-size:13px;color:var(--muted)}
+    .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .badge{border:1px dashed var(--border);padding:6px 10px;border-radius:10px;font-size:13px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .kpi{display:flex;gap:10px;align-items:center}
+    .kpi strong{font-size:18px}
+    footer{margin-top:20px;text-align:center;color:var(--muted);font-size:12px}
+
+    /* timeline */
+    .timeline{position:relative}
+    .timeline::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
+    .tl{position:relative;padding-left:28px}
+    .dot{position:absolute;left:3px;top:6px;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent)}
+
+    /* print */
+    @media print{
+      :root{--bg:#ffffff;--card:#ffffff;--text:#000000;--muted:#444;--accent:#111827;--chip:#f3f4f6;--border:#e5e7eb}
+      .container{max-width:none;padding:0}
+      .cv{grid-template-columns:300px 1fr}
+      .item, .card{break-inside:avoid}
+      .print-hide{display:none!important}
+      a{text-decoration:underline}
+    }
+
+    /* responsive */
+    @media (max-width:860px){
+      .cv{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Tombol Aksi Cepat -->
+    <div class="print-hide" style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:12px">
+      <button onclick="window.print()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer">Unduh / Cetak PDF</button>
+    </div>
+
+    <div class="cv">
+      <aside class="left">
+        <div class="card pad">
+          <header class="hero">
+            <img class="avatar" id="avatar" src="upload/ganteng.jpeg" alt="Foto Profil" onerror="fallbackAvatar(this)" />
+            <div>
+              <h1>Muhammad Alfin Firdaus</h1>
+              <div class="role">Basic Pemrograman</div>
+            </div>
+          </header>
+          <div class="meta">
+            <span class="chip">📍 Lamongan, Indonesia</span>
+            <a class="chip" href="mailto:alfinfirdaus51@gmail.com">✉️ alfinfirdaus51@gmail.com</a>
+            <a class="chip" href="tel:+6282257288859">📱 0822-5728-8859</a>
+          </div>
+        </div>
+
+        <section class="card pad section">
+          <h2>Ringkasan Profesional</h2>
+          <p style="margin:0;color:var(--muted)">Memiliki kemampuan dasar dalam pemrograman dan pengelolaan basis data. Mampu bekerja mandiri maupun dalam tim, dengan semangat belajar tinggi untuk mengembangkan keterampilan di bidang teknologi informasi.</p>
+        </section>
+
+        <section class="card pad section">
+          <h2>Keterampilan Utama</h2>
+          <div class="badges">
+            <span class="badge">Pemrograman Dasar</span>
+            <span class="badge">Basis Data</span>
+          </div>
+        </section>
+        </aside>
+
+      <main class="right">
+        <section class="card pad section">
+          <h2>Pendidikan</h2>
+          <div class="list">
+            <div class="item">
+              <h3>Universitas Islam Lamongan — S1</h3>
+              <div class="subtitle">Teknik Informatika • 2021 – 2025 • IPK 3,5/4,00</div>
+            </div>
+            <div class="item">
+              <h3>SMA Negeri 1 Lamongan</h3>
+              <div class="subtitle">2018 – 2021</div>
+            </div>
+            <div class="item">
+              <h3>SMP Negeri 2 Lamongan</h3>
+              <div class="subtitle">2015 – 2018</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card pad section">
+          <h2>Keahlian Teknis</h2>
+          <div class="grid-2">
+            <div class="item">
+              <h3>Bahasa & Kerangka</h3>
+              <div class="badges">
+                <span class="badge">PHP</span><span class="badge">Laravel</span><span class="badge">Next.js</span>
+              </div>
+            </div>
+            <div class="item">
+              <h3>Basis Data</h3>
+              <div class="badges">
+                <span class="badge">MySQL</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      
+        <section class="card pad section">
+          <h2>Pengalaman Kerja</h2>
+          <div class="list">
+            <div class="item">
+              <h3>Admin Toko Online</h3>
+              <div class="subtitle">Lamongan • 2020 – 2023</div>
+              <ul style="margin:10px 0 0 16px;color:var(--muted)">
+                <li>Mengelola pesanan dan memastikan proses pengiriman berjalan lancar.</li>
+                <li>Menangani komunikasi dengan pelanggan melalui media sosial dan platform e-commerce.</li>
+                <li>Mengatur stok barang dan pembaruan katalog produk.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      <p>DIbuat oleh M Alvin Firdaus </p>
+    </footer>
+  </div>
+
+  <script>
+    function fallbackAvatar(img){
+      const tries = ["uploads/foto-profil.jpg", "uploads/foto-profil.png", "uploads/foto-profil.webp"];
+      let i = 0;
+      function next(){
+        if(i >= tries.length){
+          console.warn('Avatar tidak ditemukan pada ekstensi umum.');
+          return;
+        }
+        const url = tries[i] + '?v=' + Date.now();
+        i++;
+        const tester = new Image();
+        tester.onload = () => { img.src = url; };
+        tester.onerror = next;
+        tester.src = url;
+      }
+      next();
+    }
+  </script>
+</body>
+</html>
