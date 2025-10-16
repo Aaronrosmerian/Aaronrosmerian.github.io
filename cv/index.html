@@ -48,22 +48,31 @@
     .tl{position:relative;padding-left:28px}
     .dot{position:absolute;left:3px;top:6px;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent)}
 
-    @page { margin: 12mm; } 
+    /* ==== CETAK A4 SATU LEMBAR ==== */
+    @page { 
+      size: A4; 
+      margin: 10mm; 
+    }
     @media print{
       :root{--bg:#ffffff;--card:#ffffff;--text:#000000;--muted:#444;--accent:#111827;--chip:#f3f4f6;--border:#e5e7eb}
-      body{line-height:1.25}
+      html, body { height:auto; }
+      body{line-height:1.25; font-size:12px}
+      h1{font-size:22px}
+      .role{font-size:12px}
       .container{max-width:none;padding:0}
-      .cv{grid-template-columns:300px 1fr;gap:12px}
-      .left,.right{gap:10px}
-      header.hero{gap:10px}
-      .avatar{width:72px;height:72px;border-radius:12px}
-      .meta{margin-top:8px;gap:6px}
-      .pad{padding:12px}
-      .section h2{margin:0 0 8px 0}
-      .list{gap:8px}
-      .item{padding:10px;border-radius:10px}
-      .grid-2{gap:8px}
-      .item, .card{break-inside:avoid}
+      .cv{grid-template-columns:280px 1fr;gap:8px; page-break-after: avoid}
+      .left,.right{gap:8px}
+      header.hero{gap:8px}
+      .avatar{width:64px;height:64px;border-radius:12px}
+      .meta{margin-top:6px;gap:4px}
+      .chip{padding:4px 8px; font-size:12px}
+      .pad{padding:10px}
+      .section h2{margin:0 0 6px 0; font-size:13px}
+      .list{gap:6px}
+      .item{padding:8px;border-radius:10px}
+      .badge{font-size:12px; padding:4px 8px}
+      .grid-2{gap:6px}
+      .item, .card{break-inside:avoid; page-break-inside: avoid}
       .print-hide, footer{display:none!important}
       a{text-decoration:underline}
     }
@@ -77,6 +86,7 @@
     <div class="print-hide" style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:12px">
       <button onclick="window.print()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer">Unduh / Cetak PDF</button>
     </div>
+
     <div class="cv">
       <aside class="left">
         <div class="card pad">
@@ -104,6 +114,9 @@
           <div class="badges">
             <span class="badge">Pemrograman Dasar</span>
             <span class="badge">Basis Data</span>
+            <!-- Tambahan sesuai permintaan -->
+            <span class="badge">Microsoft Excel</span>
+            <span class="badge">Microsoft Word</span>
           </div>
         </section>
 
@@ -157,7 +170,6 @@
                 <li>Mengatur stok barang dan pembaruan katalog produk.</li>
               </ul>
             </div>
-            <div class="list">
             <div class="item">
               <h3>Magang — Komisi Pemilihan Umum (KPU)</h3>
               <div class="subtitle">Jalan Basuki Rahmad No. 207, Lamongan • Juni 2024 – Juli 2024</div>
@@ -178,7 +190,6 @@
   </div>
 
   <script>
-
     function fallbackAvatar(img){
       const tries = [
         "upload/ganteng.jpg",
@@ -200,7 +211,3 @@
   </script>
 </body>
 </html>
-
-
-
-
