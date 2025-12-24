@@ -4,258 +4,301 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Curriculum Vitae — Mohammad Alfin Firdaus</title>
-  <meta name="description" content="Curriculum Vitae ringkas dan profesional sesuai kaidah PUEBI/ EYD." />
+  <meta name="description" content="Curriculum Vitae ringkas dan profesional." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg:#0b0d10; --card:#12161b; --text:#e7edf3; --muted:#a9b6c3;
-      --accent:#63b3ed; --chip:#1b222a; --border:#212a33;
+      --bg:#f7fafc;
+      --card:#ffffff;
+      --text:#0f1720;
+      --muted:#5b6773;
+      --accent:#2563eb;
+      --chip:#eef2f7;
+      --border:#e6ecf2;
     }
-    @media (prefers-color-scheme: light){
-      :root{
-        --bg:#f7fafc; --card:#ffffff; --text:#0f1720; --muted:#5b6773;
-        --accent:#2563eb; --chip:#eef2f7; --border:#e6ecf2;
-      }
-    }
+
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";}
+    html,body{
+      margin:0;
+      padding:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    }
+
     a{color:var(--accent);text-decoration:none}
-    .container{max-width:980px;margin-inline:auto;padding:28px;}
+
+    .container{max-width:980px;margin:auto;padding:28px;}
     .cv{display:grid;grid-template-columns:320px 1fr;gap:24px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:18px}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+    }
+
     .left,.right{display:flex;flex-direction:column;gap:18px}
     .pad{padding:22px}
-    header.hero{display:flex;gap:18px;align-items:center}
-    .avatar{width:88px;height:88px;border-radius:16px;object-fit:cover;border:2px solid var(--border)}
-    h1{font-size:28px;line-height:1.2;margin:0 0 6px 0}
-    .role{font-weight:600;color:var(--muted)}
-    .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-    .chip{background:var(--chip);border:1px solid var(--border);padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted)}
-    .section h2{font-size:16px;letter-spacing:.2px;text-transform:uppercase;color:var(--muted);margin:0 0 14px 0}
-    .list{display:flex;flex-direction:column;gap:12px}
-    .item{padding:14px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.02))}
-    .item h3{margin:0 0 4px 0;font-size:16px}
-    .item .subtitle{color:var(--muted);font-size:14px}
-    .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-    .badge{border:1px dashed var(--border);padding:6px 10px;border-radius:10px;font-size:13px}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    footer{margin-top:20px;text-align:center;color:var(--muted);font-size:12px}
 
-    .timeline{position:relative}
-    .timeline::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
-    .tl{position:relative;padding-left:28px}
-    .dot{position:absolute;left:3px;top:6px;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent)}
+    /* ===== HEADER ===== */
+    header.hero{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      position:relative;
+      padding-left:16px;
+    }
 
-   @page {
-  size: A4;
-  margin: 4mm 3mm 3mm 4mm;
-}
-   
-  @media print {
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 210mm;
-    height: 297mm;
-    overflow: hidden !important;
-  }
+    header.hero::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:6px;
+      bottom:6px;
+      width:4px;
+      border-radius:3px;
+      background:var(--accent);
+    }
 
-  body {
-    transform: scale(0.93);
-    transform-origin: top left;
-    width: 210mm;
-    height: 297mm;
-    font-size: 12px;
-    line-height: 1.15;
-  }
+    .avatar{
+      width:88px;height:88px;
+      border-radius:14px;
+      object-fit:cover;
+      border:1px solid var(--border)
+    }
 
-  .container {
-    max-height: 270mm;
-    padding: 0 !important;
-  }
+    h1{font-size:26px;margin:0}
+    .role{font-size:14px;font-weight:500;color:var(--muted)}
 
-  .cv {
-    grid-template-columns: 270px 1fr;
-    gap: 5px;
-  }
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
 
-  .left, .right {
-    gap: 5px;
-  }
+    .chip{
+      font-size:13px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:var(--chip);
+      border:1px solid var(--border);
+      color:var(--muted);
+    }
 
-  .pad {
-    padding: 8px;
-  }
+    /* ===== SECTION ===== */
+    .section{
+      position:relative;
+      padding-left:18px;
+    }
 
-  .list {
-    gap: 5px;
-  }
+    .section::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:10px;
+      bottom:10px;
+      width:3px;
+      border-radius:2px;
+      background:var(--accent);
+    }
 
-  .item {
-    padding: 6px;
-  }
+    .section h2{
+      font-size:13px;
+      letter-spacing:.6px;
+      font-weight:600;
+      margin:0 0 6px 0;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
 
-  h1 {
-    font-size: 20px;
-  }
+    p{margin:0;line-height:1.35;color:var(--muted)}
 
-  .avatar {
-    width: 60px;
-    height: 60px;
-  }
+    .list{display:flex;flex-direction:column;gap:8px}
 
-  .item, .card {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
+    .item{
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:none;
+    }
 
-  .print-hide,
-  footer {
-    display: none !important;
-  }
-}
+    .item h3{margin:0;font-size:15px}
+    .subtitle{font-size:13px;color:var(--muted)}
 
+    ul{margin:6px 0 0 14px;padding:0}
+    li{margin-bottom:4px;line-height:1.35;color:var(--muted)}
 
-    @media (max-width:860px){ .cv{grid-template-columns:1fr} }
+    .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .badge{
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:8px;
+      border:1px dashed var(--border);
+    }
+
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    footer{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+
+    /* ===== PRINT A4 (FINAL & STABIL) ===== */
+    @page{
+      size:A4;
+      margin:4mm 3mm 3mm 4mm;
+    }
+
+    @media print{
+      html,body{
+        width:210mm;
+        height:297mm;
+        overflow:hidden;
+      }
+
+      body{
+        transform:scale(0.93);
+        transform-origin:top left;
+        font-size:12px;
+        line-height:1.15;
+      }
+
+      .container{padding:0}
+      .cv{grid-template-columns:270px 1fr;gap:6px}
+      .left,.right{gap:6px}
+      .pad{padding:8px}
+      .item{padding:6px}
+
+      h1{font-size:20px}
+      .avatar{width:60px;height:60px}
+
+      .section::before,
+      header.hero::before{
+        background:#444;
+      }
+
+      .print-hide,
+      footer{display:none!important}
+
+      .card,.item{
+        break-inside:avoid;
+        page-break-inside:avoid;
+      }
+    }
+
+    @media(max-width:860px){
+      .cv{grid-template-columns:1fr}
+    }
   </style>
 </head>
+
 <body>
-  <div class="container">
+<div class="container">
 
-    <div class="print-hide" style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:12px">
-      <button onclick="window.print()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer">Unduh / Cetak PDF</button>
-    </div>
-
-    <div class="cv">
-      <aside class="left">
-        <div class="card pad">
-          <header class="hero">
-            <img class="avatar" id="avatar" src="upload/merah.jpeg?v=1" alt="Foto Profil" onerror="fallbackAvatar(this)" />
-            <div>
-              <h1>Mohammad Alfin Firdaus</h1>
-              <div class="role">Dasar Pemrograman</div>
-            </div>
-          </header>
-          <div class="meta">
-            <span class="chip">📍 Lamongan, Indonesia</span>
-            <a class="chip" href="mailto:alfinfirdaus51@gmail.com">✉️ alfinfirdaus51@gmail.com</a>
-            <a class="chip" href="tel:+6282257288859">📱 0822-5728-8859</a>
-          </div>
-        </div>
-
-        <section class="card pad section">
-          <h2>Ringkasan Profesional</h2>
-          <p style="margin:0;color:var(--muted)">Memiliki kemampuan dasar dalam pemrograman dan pengelolaan basis data. Mampu bekerja mandiri maupun dalam tim, dengan semangat belajar tinggi untuk mengembangkan keterampilan di bidang teknologi informasi.</p>
-        </section>
-
-        <section class="card pad section">
-          <h2>Keterampilan Utama</h2>
-          <div class="badges">
-            <span class="badge">Pemrograman Dasar</span>
-            <span class="badge">Basis Data</span>
-            <!-- Tambahan sesuai permintaan -->
-            <span class="badge">Microsoft Excel</span>
-            <span class="badge">Microsoft Word</span>
-          </div>
-        </section>
-
-        <section class="card pad section">
-          <h2>Keahlian Teknis</h2>
-          <div class="grid-2">
-            <div class="item">
-              <h3>Bahasa & Kerangka</h3>
-              <div class="badges">
-                <span class="badge">PHP</span><span class="badge">Python</span>
-              </div>
-            </div>
-            <div class="item">
-              <h3>Basis Data</h3>
-              <div class="badges">
-                <span class="badge">MySQL</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </aside>
-
-      <main class="right">
-        <section class="card pad section">
-          <h2>Pendidikan</h2>
-          <div class="list">
-            <div class="item">
-              <h3>Universitas Islam Lamongan — S1</h3>
-              <div class="subtitle">Teknik Informatika • 2021 – 2025 • IPK 3,63/4,00</div>
-            </div>
-            <div class="item">
-              <h3>SMA Negeri 1 Lamongan</h3>
-              <div class="subtitle">2018 – 2021</div>
-            </div>
-            <div class="item">
-              <h3>SMP Negeri 2 Lamongan</h3>
-              <div class="subtitle">2015 – 2018</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="card pad section">
-          <h2>Pengalaman Kerja</h2>
-          <div class="list">
-            <div class="item">
-              <h3>Admin Toko Online</h3>
-              <div class="subtitle">AWEES Lamongan • 2023 – 2024</div>
-              <ul style="margin:6px 0 0 16px;color:var(--muted)">
-                <li>Mengelola pesanan dan memastikan proses pengiriman berjalan lancar.</li>
-                <li>Menangani komunikasi dengan pelanggan melalui media sosial dan platform e-commerce.</li>
-                <li>Mengatur stok barang dan pembaruan katalog produk.</li>
-              </ul>
-            </div>
-            <div class="item">
-              <h3>Magang — Komisi Pemilihan Umum (KPU)</h3>
-              <div class="subtitle">Jalan Basuki Rahmad No. 207, Lamongan • Juni 2024 – Juli 2024</div>
-              <ul style="margin:6px 0 0 16px;color:var(--muted)">
-                <li>Mendukung input dan validasi data pemilih pada sistem internal.</li>
-                <li>Menyiapkan dokumen administrasi, surat-menyurat, dan penataan arsip.</li>
-                <li>Berkoordinasi dengan tim untuk kebutuhan logistik dan kegiatan sosialisasi.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <footer class="print-hide">
-      <p>Dibuat oleh M. Alfin Firdaus</p>
-    </footer>
+  <div class="print-hide" style="text-align:right;margin-bottom:12px">
+    <button onclick="window.print()">Unduh / Cetak PDF</button>
   </div>
 
-  <script>
-    function fallbackAvatar(img){
-      const tries = [
-        "upload/ganteng.jpg",
-        "upload/ganteng.png",
-        "upload/ganteng.webp"
-      ];
-      let i = 0;
-      function next(){
-        if(i >= tries.length){ console.warn('Avatar tidak ditemukan pada ekstensi umum.'); return; }
-        const url = tries[i] + '?v=' + Date.now();
-        i++;
-        const tester = new Image();
-        tester.onload = () => { img.src = url; };
-        tester.onerror = next;
-        tester.src = url;
-      }
-      next();
-    }
-  </script>
+  <div class="cv">
+
+    <aside class="left">
+      <div class="card pad">
+        <header class="hero">
+          <img class="avatar" src="upload/merah.jpeg" alt="Foto Profil">
+          <div>
+            <h1>Mohammad Alfin Firdaus</h1>
+            <div class="role">Dasar Pemrograman</div>
+          </div>
+        </header>
+
+        <div class="meta">
+          <span class="chip">📍 Lamongan, Indonesia</span>
+          <span class="chip">✉️ alfinfirdaus51@gmail.com</span>
+          <span class="chip">📱 0822-5728-8859</span>
+        </div>
+      </div>
+
+      <section class="card pad section">
+        <h2>Ringkasan Profesional</h2>
+        <p>Memiliki kemampuan dasar pemrograman dan basis data. Terbiasa bekerja mandiri maupun tim dengan motivasi belajar tinggi di bidang teknologi informasi.</p>
+      </section>
+
+      <section class="card pad section">
+        <h2>Keterampilan Utama</h2>
+        <div class="badges">
+          <span class="badge">Pemrograman Dasar</span>
+          <span class="badge">Basis Data</span>
+          <span class="badge">Microsoft Excel</span>
+          <span class="badge">Microsoft Word</span>
+        </div>
+      </section>
+
+      <section class="card pad section">
+        <h2>Keahlian Teknis</h2>
+        <div class="grid-2">
+          <div class="item">
+            <h3>Bahasa</h3>
+            <div class="badges">
+              <span class="badge">PHP</span>
+              <span class="badge">Python</span>
+            </div>
+          </div>
+          <div class="item">
+            <h3>Basis Data</h3>
+            <div class="badges">
+              <span class="badge">MySQL</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="right">
+      <section class="card pad section">
+        <h2>Pendidikan</h2>
+        <div class="list">
+          <div class="item">
+            <h3>Universitas Islam Lamongan — S1</h3>
+            <div class="subtitle">Teknik Informatika • 2021–2025 • IPK 3,63/4,00</div>
+          </div>
+          <div class="item">
+            <h3>SMA Negeri 1 Lamongan</h3>
+            <div class="subtitle">2018–2021</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card pad section">
+        <h2>Pengalaman Kerja</h2>
+        <div class="list">
+          <div class="item">
+            <h3>Admin Toko Online</h3>
+            <div class="subtitle">AWEES Lamongan • 2023–2024</div>
+            <ul>
+              <li>Mengelola pesanan dan pengiriman.</li>
+              <li>Menangani komunikasi pelanggan.</li>
+              <li>Mengatur stok dan katalog produk.</li>
+            </ul>
+          </div>
+
+          <div class="item">
+            <h3>Magang — KPU Lamongan</h3>
+            <div class="subtitle">Juni–Juli 2024</div>
+            <ul>
+              <li>Input dan validasi data pemilih.</li>
+              <li>Administrasi dan arsip dokumen.</li>
+              <li>Dukungan kegiatan sosialisasi.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <footer class="print-hide">Dibuat oleh Mohammad Alfin Firdaus</footer>
+</div>
 </body>
 </html>
-
-
-
-
-
-
-
