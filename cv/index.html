@@ -191,12 +191,31 @@
     padding: 10px;
   }
 
-  /* ===== HILANGKAN SEMUA GARIS & DEKORASI ===== */
-  .section::before,
+  /* ===== GARIS KIRI (SATU-SATUNYA GARIS) ===== */
+  .section {
+    position: relative;
+    padding-left: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .section::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    border-radius: 2px;
+    background: #444;
+  }
+
+  /* Header (nama) TIDAK pakai garis */
   header.hero::before {
     display: none !important;
   }
 
+  /* ===== MATIKAN SEMUA GARIS LAIN ===== */
   .card,
   .item {
     border: none !important;
@@ -283,6 +302,7 @@
     display: none !important;
   }
 }
+
 
 
     @media(max-width:860px){
@@ -399,6 +419,7 @@
 </div>
 </body>
 </html>
+
 
 
 
