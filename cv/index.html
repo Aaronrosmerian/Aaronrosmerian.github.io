@@ -152,7 +152,7 @@
     }
 
    @media print {
-  /* ===== RESET & KUNCI A4 ===== */
+  /* ===== RESET HALAMAN ===== */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
@@ -179,59 +179,48 @@
 
   .cv {
     grid-template-columns: 270px 1fr;
-    gap: 14px;
+    gap: 16px;
   }
 
   .left,
   .right {
-    gap: 14px;
+    gap: 16px;
   }
 
   .pad {
-    padding: 10px;
+    padding: 12px;
   }
 
-  /* ===== GARIS KIRI (SATU-SATUNYA GARIS) ===== */
-  .section {
+  /* ===== CARD STYLE (SESUAI GAMBAR) ===== */
+  .card {
     position: relative;
-    padding-left: 16px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: none;
   }
 
-  .section::before {
+  /* GARIS KIRI BIRU (AKSEN UTAMA) */
+  .card::before {
     content: "";
     position: absolute;
     left: 0;
     top: 14px;
     bottom: 14px;
-    width: 2px;
-    border-radius: 2px;
-    background: #444;
+    width: 3px;
+    border-radius: 3px;
+    background: #2563eb;
   }
 
-  /* Header (nama) TIDAK pakai garis */
+  /* ===== HEADER ===== */
+  header.hero {
+    padding-left: 0;
+  }
+
   header.hero::before {
     display: none !important;
   }
 
-  /* ===== MATIKAN SEMUA GARIS LAIN ===== */
-  .card,
-  .item {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  .section h2 {
-    border: none !important;
-    padding: 0;
-    margin-bottom: 10px;
-    font-size: 13px;
-    letter-spacing: 0.6px;
-  }
-
-  /* ===== HEADER ===== */
   h1 {
     font-size: 20px;
     margin-bottom: 2px;
@@ -246,17 +235,31 @@
     height: 60px;
   }
 
-  header.hero {
-    padding-left: 0;
+  /* ===== SECTION (TANPA GARIS SENDIRI) ===== */
+  .section {
+    padding: 0;
   }
 
-  /* ===== LIST & TEKS ===== */
+  .section::before {
+    display: none !important;
+  }
+
+  .section h2 {
+    font-size: 12.5px;
+    margin-bottom: 8px;
+    letter-spacing: 0.6px;
+    border: none;
+  }
+
+  /* ===== ITEM & LIST ===== */
   .list {
-    gap: 12px;
+    gap: 10px;
   }
 
   .item {
     padding: 0;
+    border: none;
+    background: transparent;
   }
 
   p {
@@ -284,26 +287,23 @@
   }
 
   .badge {
-    border: none !important;
-    padding: 0;
     font-size: 12px;
+    padding: 0;
+    border: none;
   }
 
   /* ===== ANTI PAGE BREAK ===== */
-  .card,
-  .item {
+  .card {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
-  /* ===== SEMBUNYIKAN NON PRINT ===== */
+  /* ===== HIDE NON PRINT ===== */
   .print-hide,
   footer {
     display: none !important;
   }
 }
-
-
 
     @media(max-width:860px){
       .cv{grid-template-columns:1fr}
@@ -419,6 +419,7 @@
 </div>
 </body>
 </html>
+
 
 
 
