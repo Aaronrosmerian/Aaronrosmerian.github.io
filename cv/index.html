@@ -251,6 +251,31 @@
     letter-spacing: 0.6px;
     border: none;
   }
+     .section .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0; /* kita atur manual */
+  }
+
+  .section .badge {
+    position: relative;
+    padding-right: 10px;
+    margin-right: 10px;
+  }
+
+  /* Garis pemisah | */
+  .section .badge::after {
+    content: "|";
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: #6b7280;
+  }
+
+  /* Hilangkan | di item terakhir */
+  .section .badge:last-child::after {
+    content: "";
+  }
 
   /* ===== ITEM & LIST ===== */
   .list {
@@ -262,20 +287,26 @@
     border: none;
     background: transparent;
   }
-     .grid-2 .item {
-    position: relative;
-    padding-left: 14px; /* ruang untuk garis */
+     .grid-2 .badges {
+    gap: 0;
   }
 
-  .grid-2 .item::before {
-    content: "";
+  .grid-2 .badge {
+    position: relative;
+    padding-right: 10px;
+    margin-right: 10px;
+  }
+
+  .grid-2 .badge::after {
+    content: "|";
     position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    border-radius: 2px;
-    background: #2563eb; /* biru seperti contoh */
+    right: 0;
+    top: 0;
+    color: #6b7280;
+  }
+
+  .grid-2 .badge:last-child::after {
+    content: "";
   }
 
   p {
@@ -441,6 +472,7 @@
 </div>
 </body>
 </html>
+
 
 
 
