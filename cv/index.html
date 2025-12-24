@@ -251,31 +251,6 @@
     letter-spacing: 0.6px;
     border: none;
   }
-     .section .badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0; /* kita atur manual */
-  }
-
-  .section .badge {
-    position: relative;
-    padding-right: 10px;
-    margin-right: 10px;
-  }
-
-  /* Garis pemisah | */
-  .section .badge::after {
-    content: "|";
-    position: absolute;
-    right: 0;
-    top: 0;
-    color: #6b7280;
-  }
-
-  /* Hilangkan | di item terakhir */
-  .section .badge:last-child::after {
-    content: "";
-  }
 
   /* ===== ITEM & LIST ===== */
   .list {
@@ -287,7 +262,7 @@
     border: none;
     background: transparent;
   }
-     .grid-2 .badges {
+  .grid-2 .badges {
     gap: 0;
   }
 
@@ -330,13 +305,25 @@
 
   /* ===== BADGE ===== */
   .badges {
-    gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
   }
 
   .badge {
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
     padding: 0;
-    border: none;
+    margin: 0;
+    font-size: 12px;
+    color: #000;
+  }
+
+  /* Tambahkan | sebelum badge ke-2 dst */
+  .badge + .badge::before {
+    content: " | ";
+    color: #6b7280;
+    margin: 0 6px;
   }
 
   /* ===== ANTI PAGE BREAK ===== */
@@ -472,6 +459,7 @@
 </div>
 </body>
 </html>
+
 
 
 
