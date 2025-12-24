@@ -151,7 +151,7 @@
       margin:4mm 3mm 3mm 4mm;
     }
 
-    @media print {
+   @media print {
   /* ===== RESET & KUNCI A4 ===== */
   html, body {
     margin: 0 !important;
@@ -159,6 +159,7 @@
     width: 210mm;
     height: 297mm;
     overflow: hidden !important;
+    background: #ffffff;
   }
 
   body {
@@ -168,27 +169,26 @@
     height: 297mm;
     font-size: 12px;
     line-height: 1.3;
-    background: #ffffff;
     color: #000000;
   }
 
-  /* ===== LAYOUT UTAMA ===== */
+  /* ===== LAYOUT ===== */
   .container {
     padding: 0 !important;
   }
 
   .cv {
     grid-template-columns: 270px 1fr;
-    gap: 8px;
+    gap: 10px;
   }
 
   .left,
   .right {
-    gap: 8px;
+    gap: 10px;
   }
 
   .pad {
-    padding: 8px;
+    padding: 9px;
   }
 
   /* ===== HEADER ===== */
@@ -207,55 +207,45 @@
   }
 
   header.hero {
-    padding-left: 12px;
+    padding-left: 0;
   }
 
-  header.hero::before {
-    background: #444;
-  }
-
-  /* ===== SECTION + AKSEN GARIS ===== */
-  .section {
-    position: relative;
-    padding-left: 14px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-  }
-
+  /* ❌ MATIKAN GARIS VERTIKAL SAAT PRINT */
+  header.hero::before,
   .section::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 14px;
-    bottom: 14px;
-    width: 2px;
-    border-radius: 2px;
-    background: #444;
+    display: none !important;
+  }
+
+  /* ===== SECTION ===== */
+  .section {
+    padding: 8px 10px;
   }
 
   .section h2 {
     font-size: 12.5px;
     margin-bottom: 8px;
-    padding-bottom: 3px;
-    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    border-bottom: 1px solid #999;
     letter-spacing: 0.6px;
   }
 
   /* ===== CARD & ITEM ===== */
   .card {
-    border-radius: 10px;
+    border-radius: 8px;
+    border-color: #ddd;
   }
 
   .item {
-    padding: 6px;
+    padding: 7px;
     border-radius: 8px;
+    border-color: #e5e5e5;
   }
 
   .list {
-    gap: 7px;
+    gap: 8px;
   }
 
-  /* ===== TEKS & LIST ===== */
+  /* ===== TEKS ===== */
   p {
     margin: 0;
     line-height: 1.35;
@@ -272,7 +262,7 @@
   }
 
   li {
-    margin-bottom: 3px;
+    margin-bottom: 4px;
     line-height: 1.3;
   }
 
@@ -294,7 +284,7 @@
     page-break-inside: avoid !important;
   }
 
-  /* ===== SEMBUNYIKAN ELEMEN NON-PRINT ===== */
+  /* ===== SEMBUNYIKAN ELEMEN NON PRINT ===== */
   .print-hide,
   footer {
     display: none !important;
@@ -416,4 +406,5 @@
 </div>
 </body>
 </html>
+
 
