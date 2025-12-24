@@ -51,18 +51,78 @@
    @page {
   size: A4;
   margin: 4mm 3mm 3mm 4mm;
-  }
-  
+}
+   
   @media print {
-    body {
-      zoom: 0.96;
-    }
-  
-    .item, .card {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
+  :root{
+    --bg:#ffffff;
+    --card:#ffffff;
+    --text:#000000;
+    --muted:#444;
+    --accent:#111827;
+    --chip:#f3f4f6;
+    --border:#e5e7eb;
   }
+
+  html, body {
+    height: 297mm;
+    max-height: 297mm;
+    overflow: hidden;
+  }
+
+  body {
+    font-size: 12px;
+    line-height: 1.2;
+    transform: scale(0.955);
+    transform-origin: top left;
+    width: 100%;
+  }
+
+  .container {
+    padding: 0;
+    max-height: 285mm;
+  }
+
+  .cv {
+    grid-template-columns: 280px 1fr;
+    gap: 6px;
+  }
+
+  .left, .right {
+    gap: 6px;
+  }
+
+  header.hero {
+    gap: 6px;
+  }
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .pad {
+    padding: 9px;
+  }
+
+  .list {
+    gap: 6px;
+  }
+
+  .item {
+    padding: 7px;
+  }
+
+  .item, .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-hide, footer {
+    display: none !important;
+  }
+}
+
 
     @media (max-width:860px){ .cv{grid-template-columns:1fr} }
   </style>
@@ -198,6 +258,7 @@
   </script>
 </body>
 </html>
+
 
 
 
