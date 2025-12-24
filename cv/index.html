@@ -151,42 +151,156 @@
       margin:4mm 3mm 3mm 4mm;
     }
 
-    @media print{
-      html,body{
-        width:210mm;
-        height:297mm;
-        overflow:hidden;
-      }
+    @media print {
+  /* ===== RESET & KUNCI A4 ===== */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden !important;
+  }
 
-      body{
-        transform:scale(0.93);
-        transform-origin:top left;
-        font-size:12px;
-        line-height:1.15;
-      }
+  body {
+    transform: scale(0.93);
+    transform-origin: top left;
+    width: 210mm;
+    height: 297mm;
+    font-size: 12px;
+    line-height: 1.3;
+    background: #ffffff;
+    color: #000000;
+  }
 
-      .container{padding:0}
-      .cv{grid-template-columns:270px 1fr;gap:6px}
-      .left,.right{gap:6px}
-      .pad{padding:8px}
-      .item{padding:6px}
+  /* ===== LAYOUT UTAMA ===== */
+  .container {
+    padding: 0 !important;
+  }
 
-      h1{font-size:20px}
-      .avatar{width:60px;height:60px}
+  .cv {
+    grid-template-columns: 270px 1fr;
+    gap: 8px;
+  }
 
-      .section::before,
-      header.hero::before{
-        background:#444;
-      }
+  .left,
+  .right {
+    gap: 8px;
+  }
 
-      .print-hide,
-      footer{display:none!important}
+  .pad {
+    padding: 8px;
+  }
 
-      .card,.item{
-        break-inside:avoid;
-        page-break-inside:avoid;
-      }
-    }
+  /* ===== HEADER ===== */
+  h1 {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  .role {
+    font-size: 12px;
+  }
+
+  .avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  header.hero {
+    padding-left: 12px;
+  }
+
+  header.hero::before {
+    background: #444;
+  }
+
+  /* ===== SECTION + AKSEN GARIS ===== */
+  .section {
+    position: relative;
+    padding-left: 14px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .section::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    border-radius: 2px;
+    background: #444;
+  }
+
+  .section h2 {
+    font-size: 12.5px;
+    margin-bottom: 8px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.6px;
+  }
+
+  /* ===== CARD & ITEM ===== */
+  .card {
+    border-radius: 10px;
+  }
+
+  .item {
+    padding: 6px;
+    border-radius: 8px;
+  }
+
+  .list {
+    gap: 7px;
+  }
+
+  /* ===== TEKS & LIST ===== */
+  p {
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .subtitle {
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  ul {
+    margin: 6px 0 0 14px;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 3px;
+    line-height: 1.3;
+  }
+
+  /* ===== BADGE ===== */
+  .badges {
+    gap: 6px;
+  }
+
+  .badge {
+    font-size: 12px;
+    padding: 3px 7px;
+    border-radius: 8px;
+  }
+
+  /* ===== ANTI PAGE BREAK ===== */
+  .card,
+  .item {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* ===== SEMBUNYIKAN ELEMEN NON-PRINT ===== */
+  .print-hide,
+  footer {
+    display: none !important;
+  }
+}
+
 
     @media(max-width:860px){
       .cv{grid-template-columns:1fr}
@@ -302,3 +416,4 @@
 </div>
 </body>
 </html>
+
