@@ -49,9 +49,14 @@
     .dot{position:absolute;left:3px;top:6px;width:14px;height:14px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent)}
 
     /* ==== CETAK A4 SATU LEMBAR ==== */
-    @page { 
-      size: A4; 
-      margin: 10mm; 
+    @page {
+      size: A4;
+      margin-top: 4mm;
+      margin-left: 4mm;
+      margin-bottom: 3mm;
+      margin-right: 3mm;
+    }
+ 
     }
     @media print{
       :root{--bg:#ffffff;--card:#ffffff;--text:#000000;--muted:#444;--accent:#111827;--chip:#f3f4f6;--border:#e5e7eb}
@@ -211,6 +216,7 @@
   </script>
 </body>
 </html>
+
 
 
 
