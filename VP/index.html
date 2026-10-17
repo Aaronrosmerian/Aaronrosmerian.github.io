@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NusaPlay — Pemutar Video Modern (MP4, MKV, MOV)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.8);
+        }
+
+        /* Custom Range Slider for Video & Volume */
+        input[type="range"].custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"].custom-slider::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+        }
+        input[type="range"].custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            margin-top: -4px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"].custom-slider:hover::-webkit-slider-thumb {
+            transform: scale(1.25);
+            background: #ffffff;
+        }
+
+        /* Video Subtitle Styling */
+        video::cue {
+            background-color: rgba(15, 23, 42, 0.82);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.05rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        /* Hide controls cleanly when idle in fullscreen */
+        .player-idle {
+            cursor: none;
+        }
+        .player-idle .controls-overlay {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-sky-500 selection:text-white overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i class="ph-fill ph-play-circle text-2xl text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg tracking-tight text-white">FinFlix <span class="text-sky-400 font-normal text-sm">Studio</span></h1>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            MP4 • MKV • MOV
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Pemutar Video Multi-Format Berbasis Web</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Add Local Video Button -->
+                <label for="fileInput" class="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-semibold text-xs sm:text-sm transition shadow-lg shadow-sky-500/20">
+                    <i class="ph-bold ph-folder-open text-base"></i>
+                    <span>Pilih File Video</span>
+                </label>
+                <input id="fileInput" type="file" accept=".mp4,.mkv,.mov,.webm,video/mp4,video/x-matroska,video/quicktime,video/webm" multiple class="hidden">
+
+                <!-- Add Subtitle Button -->
+                <label for="subtitleInput" class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs sm:text-sm border border-slate-700 transition" title="Muat Subtitle (.vtt atau .srt)">
+                    <i class="ph-bold ph-closed-captioning text-base text-sky-400"></i>
+                    <span class="hidden md:inline">Subtitle (.SRT/.VTT)</span>
+                </label>
+                <input id="subtitleInput" type="file" accept=".vtt,.srt" class="hidden">
+
+                <!-- Compatibility Guide Modal Button -->
+                <button id="btnCodecInfo" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm border border-slate-700/80 transition" title="Info Dukungan Format & Pintasan">
+                    <i class="ph-bold ph-info text-base text-amber-400"></i>
+                    <span class="hidden lg:inline">Info Codec & Pintasan</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left Column: Video Player & Metadata (8 cols on large screens, or 12 in theater mode) -->
+        <div id="playerColumn" class="lg:col-span-8 flex flex-col gap-5 transition-all duration-300">
+            
+            <!-- Video Container Wrapper -->
+            <div id="playerContainer" class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden border border-slate-800 shadow-2xl group select-none flex items-center justify-center">
+                
+                <!-- HTML5 Video Element -->
+                <video id="mainVideo" class="w-full h-full object-contain bg-black" playsinline crossorigin="anonymous">
+                    <track id="subtitleTrack" kind="subtitles" srclang="id" label="Bahasa Indonesia" default>
+                    Browser Anda tidak mendukung elemen video HTML5.
+                </video>
+
+                <!-- Drag & Drop Overlay (Shows when dragging files over player) -->
+                <div id="dropZoneOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex-col items-center justify-center border-2 border-dashed border-sky-400 rounded-2xl m-3 pointer-events-none">
+                    <div class="w-20 h-20 rounded-full bg-sky-500/20 flex items-center justify-center mb-4 animate-bounce">
+                        <i class="ph-fill ph-file-video text-5xl text-sky-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Lepaskan File Video di Sini</h3>
+                    <p class="text-sm text-slate-400 mt-1">Mendukung file lokal .MP4, .MKV, .MOV, dan Subtitle .SRT / .VTT</p>
+                </div>
+
+                <!-- Empty State / Welcome Overlay -->
+                <div id="emptyStateOverlay" class="absolute inset-0 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 flex flex-col items-center justify-center p-6 text-center z-20">
+                    <div class="w-20 h-20 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mb-4 shadow-inner">
+                        <i class="ph-duotone ph-film-strip text-5xl text-sky-400"></i>
+                    </div>
+                    <h2 class="text-lg sm:text-xl font-bold text-white max-w-md">Tarik & Lepaskan File Video Anda</h2>
+                    <p class="text-xs sm:text-sm text-slate-400 max-w-md mt-1.5 leading-relaxed">
+                        Pilih file video dari perangkat Anda (<span class="text-sky-400 font-mono">.mp4</span>, <span class="text-purple-400 font-mono">.mkv</span>, <span class="text-amber-400 font-mono">.mov</span>) atau putar video sampel di daftar putar.
+                    </p>
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
+                        <label for="fileInput" class="cursor-pointer px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-sm flex items-center gap-2 shadow-lg shadow-sky-500/20 transition">
+                            <i class="ph-bold ph-upload-simple"></i>
+                            Telusuri File Lokal
+                        </label>
+                        <button id="btnLoadDemo" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm border border-slate-700 flex items-center gap-2 transition">
+                            <i class="ph-fill ph-play text-sky-400"></i>
+                            Putar Video Sampel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error / Codec Warning Overlay -->
+                <div id="errorOverlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex-col items-center justify-center p-6 text-center z-30">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-3">
+                        <i class="ph-fill ph-warning-octagon text-4xl text-rose-400"></i>
+                    </div>
+                    <span id="errorFormatBadge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 mb-2">
+                        CODEC ERROR
+                    </span>
+                    <h3 id="errorTitle" class="text-lg sm:text-xl font-bold text-white max-w-lg">Video Tidak Dapat Diputar</h3>
+                    <p id="errorMessage" class="text-xs sm:text-sm text-slate-300 max-w-lg mt-2 leading-relaxed">
+                        Format atau codec video ini tidak didukung secara native oleh browser Anda.
+                    </p>
+                    <div class="mt-4 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 max-w-lg text-left text-xs text-slate-400 space-y-1.5">
+                        <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+                            <i class="ph-fill ph-lightbulb text-amber-400"></i> Mengapa hal ini terjadi pada file MKV / MOV?
+                        </div>
+                        <p>Container <span class="font-mono text-purple-300">.MKV</span> dan <span class="font-mono text-amber-300">.MOV</span> sering menggunakan codec video <span class="text-slate-200">HEVC (H.265)</span> atau audio <span class="text-slate-200">AC3 / DTS</span>. Browser modern dapat memutar MKV/MOV dengan lancar jika berisi codec <span class="text-emerald-400 font-medium">H.264 / VP9 / AV1 + Audio AAC/Opus</span>.</p>
+                    </div>
+                    <div class="mt-5 flex flex-wrap gap-3 justify-center">
+                        <button id="btnRetryForcePlay" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition">
+                            Coba Muat Ulang
+                        </button>
+                        <label for="fileInput" class="cursor-pointer px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs sm:text-sm font-semibold transition">
+                            Pilih File Lain
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Center Play/Pause Ripple Indicator -->
+                <div id="centerStatusIcon" class="pointer-events-none opacity-0 transition-all duration-300 transform scale-75 absolute z-20 w-20 h-20 rounded-full bg-slate-900/75 backdrop-blur-md border border-white/15 flex items-center justify-center text-white shadow-2xl">
+                    <i id="centerIconInner" class="ph-fill ph-play text-4xl"></i>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="hidden pointer-events-none absolute z-20 w-14 h-14 rounded-full bg-slate-900/70 backdrop-blur-sm flex items-center justify-center">
+                    <i class="ph-bold ph-spinner animate-spin text-3xl text-sky-400"></i>
+                </div>
+
+                <!-- Top Bar inside Video (Title & Format Badge) -->
+                <div class="controls-overlay absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between gap-4 z-20 pointer-events-none">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span id="activeFormatBadge" class="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold uppercase bg-sky-500 text-slate-950 shadow">
+                            MP4
+                        </span>
+                        <h3 id="activeVideoTitle" class="text-sm sm:text-base font-semibold text-white truncate drop-shadow">
+                            Belum ada video dipilih
+                        </h3>
+                    </div>
+                    <div id="activeResolutionBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700/70 text-xs font-mono text-slate-300">
+                        <i class="ph-fill ph-monitor text-sky-400"></i>
+                        <span id="resText">-- x --</span>
+                    </div>
+                </div>
+
+                <!-- Bottom Custom Controls Overlay -->
+                <div id="controlsOverlay" class="controls-overlay absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-10 pb-3 px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 flex flex-col gap-2.5">
+                    
+                    <!-- Progress Bar Container -->
+                    <div class="relative flex items-center group/progress">
+                        <!-- Hover Timestamp Tooltip -->
+                        <div id="progressTooltip" class="hidden group-hover/progress:block absolute -top-8 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[11px] border border-slate-700 pointer-events-none shadow">
+                            00:00
+                        </div>
+
+                        <!-- Buffered Track Background -->
+                        <div class="w-full h-1.5 bg-slate-700/80 rounded-full overflow-hidden relative">
+                            <div id="bufferedBar" class="h-full bg-slate-500/60 w-0 transition-all duration-200"></div>
+                            <div id="playedBar" class="h-full bg-sky-400 w-0 absolute top-0 left-0"></div>
+                        </div>
+
+                        <!-- Interactive Range Input -->
+                        <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="custom-slider absolute inset-0 w-full h-full opacity-0 group-hover/progress:opacity-100 transition-opacity">
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="flex items-center justify-between gap-2">
+                        
+                        <!-- Left Controls -->
+                        <div class="flex items-center gap-1 sm:gap-2">
+                            <!-- Play / Pause -->
+                            <button id="btnPlayPause" class="p-2 rounded-xl hover:bg-white/10 text-white transition" title="Putar / Jeda (Spasi)">
+                                <i id="iconPlayPause" class="ph-fill ph-play text-xl sm:text-2xl"></i>
+                            </button>
+
+                            <!-- Previous / Next in Playlist -->
+                            <button id="btnPrev" class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Video Sebelumnya">
+                                <i class="ph-fill ph-skip-back text-lg"></i>
+                            </button>
+                            <button id="btnNext" class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Video Berikutnya">
+                                <i class="ph-fill ph-skip-forward text-lg"></i>
+                            </button>
+
+                            <!-- Rewind / Forward 10s -->
+                            <button id="btnRewind" class="hidden sm:inline-flex p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Mundur 10 Detik (Panah Kiri)">
+                                <i class="ph-bold ph-arrow-counter-clockwise text-lg"></i>
+                            </button>
+                            <button id="btnForward" class="hidden sm:inline-flex p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Maju 10 Detik (Panah Kanan)">
+                                <i class="ph-bold ph-arrow-clockwise text-lg"></i>
+                            </button>
+
+                            <!-- Volume Controls -->
+                            <div class="flex items-center gap-1.5 group/vol">
+                                <button id="btnMute" class="p-2 rounded-xl hover:bg-white/10 text-white transition" title="Bisu / Suara (M)">
+                                    <i id="iconVolume" class="ph-fill ph-speaker-high text-xl"></i>
+                                </button>
+                                <input id="volumeSlider" type="range" min="0" max="1" step="0.02" value="1" class="custom-slider w-16 sm:w-20 bg-slate-700 rounded-full h-1.5">
+                            </div>
+
+                            <!-- Time Display -->
+                            <div class="text-xs sm:text-sm font-mono text-slate-300 ml-1 sm:ml-2 select-text">
+                                <span id="currentTimeText" class="text-white font-medium">00:00</span>
+                                <span class="text-slate-500 mx-0.5">/</span>
+                                <span id="durationText">00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Right Controls -->
+                        <div class="flex items-center gap-1 sm:gap-1.5">
+                            <!-- Playback Speed Selector -->
+                            <div class="relative">
+                                <select id="speedSelect" class="appearance-none bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-mono font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer focus:outline-none focus:border-sky-400 transition" title="Kecepatan Pemutaran">
+                                    <option value="0.5">0.5x</option>
+                                    <option value="0.75">0.75x</option>
+                                    <option value="1" selected>1.0x</option>
+                                    <option value="1.25">1.25x</option>
+                                    <option value="1.5">1.5x</option>
+                                    <option value="2">2.0x</option>
+                                </select>
+                            </div>
+
+                            <!-- Loop Toggle -->
+                            <button id="btnLoop" class="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition" title="Ulangi Video (Loop)">
+                                <i class="ph-bold ph-repeat text-lg"></i>
+                            </button>
+
+                            <!-- Screenshot Button -->
+                            <button id="btnScreenshot" class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Ambil Tangkapan Layar (Screenshot)">
+                                <i class="ph-bold ph-camera text-lg"></i>
+                            </button>
+
+                            <!-- Picture-in-Picture -->
+                            <button id="btnPiP" class="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Picture-in-Picture (PiP)">
+                                <i class="ph-bold ph-picture-in-picture text-lg"></i>
+                            </button>
+
+                            <!-- Theater Mode -->
+                            <button id="btnTheater" class="hidden lg:inline-flex p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition" title="Mode Teater (T)">
+                                <i class="ph-bold ph-rectangle text-lg"></i>
+                            </button>
+
+                            <!-- Fullscreen -->
+                            <button id="btnFullscreen" class="p-2 rounded-xl hover:bg-white/10 text-white transition" title="Layar Penuh (F)">
+                                <i id="iconFullscreen" class="ph-bold ph-corners-out text-xl"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Banner for Audio-less MKV / MOV (If video plays but audio track might be unsupported AC3/DTS) -->
+            <div id="codecHintBanner" class="hidden rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <i class="ph-fill ph-info text-amber-400 text-xl mt-0.5 shrink-0"></i>
+                    <div class="text-xs sm:text-sm text-slate-300">
+                        <span class="font-semibold text-amber-300">Mode Pemutaran Kontainer <span id="hintExtName">MKV/MOV</span>:</span>
+                        Jika gambar tampil lancar namun <strong>suara tidak terdengar</strong>, kemungkinan file menggunakan trek audio <code>AC3 / DTS / E-AC3</code> yang tidak didekode secara native oleh browser. Gunakan file dengan audio <code>AAC / MP3 / Opus</code> untuk suara penuh.
+                    </div>
+                </div>
+                <button id="btnCloseHint" class="text-slate-400 hover:text-white p-1">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+
+            <!-- Video Metadata & Inspector Card -->
+            <div class="bg-slate-900/70 border border-slate-800/90 rounded-2xl p-5 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="metaFormatPill" class="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                                READY
+                            </span>
+                            <h2 id="metaTitle" class="text-base sm:text-lg font-bold text-white break-all">
+                                Pilih atau Tarik File Video untuk Memulai
+                            </h2>
+                        </div>
+                        <p id="metaSourceType" class="text-xs text-slate-400 mt-1">
+                            Mendukung pemutaran file lokal langsung tanpa unggah ke server (100% privasi terjaga).
+                        </p>
+                    </div>
+
+                    <!-- Quick Speed & Aspect Ratio Controls -->
+                    <div class="flex items-center gap-2">
+                        <button id="btnFitToggle" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 flex items-center gap-1.5 transition" title="Ubah Rasio Tampilan Video">
+                            <i class="ph-bold ph-frame-corners text-sky-400"></i>
+                            <span id="fitModeText">Rasio: Proporsional</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Technical Specs Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
+                    <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                            <i class="ph-fill ph-file-video text-sky-400"></i> Format Kontainer
+                        </div>
+                        <div id="specContainer" class="text-sm sm:text-base font-mono font-semibold text-white mt-1">-</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                            <i class="ph-fill ph-arrows-out text-purple-400"></i> Resolusi Video
+                        </div>
+                        <div id="specResolution" class="text-sm sm:text-base font-mono font-semibold text-white mt-1">-</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                            <i class="ph-fill ph-hard-drive text-emerald-400"></i> Ukuran File
+                        </div>
+                        <div id="specSize" class="text-sm sm:text-base font-mono font-semibold text-white mt-1">-</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider font-medium flex items-center gap-1.5">
+                            <i class="ph-fill ph-clock text-amber-400"></i> Durasi Total
+                        </div>
+                        <div id="specDuration" class="text-sm sm:text-base font-mono font-semibold text-white mt-1">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: URL Loader & Playlist (4 cols on large screens) -->
+        <div id="sidebarColumn" class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- Direct URL Input Card -->
+            <div class="bg-slate-900/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-lg">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                    <i class="ph-fill ph-link text-sky-400 text-lg"></i>
+                    Putar dari URL Video Langsung
+                </h3>
+                <form id="urlForm" class="flex flex-col sm:flex-row gap-2">
+                    <input id="urlInput" type="url" placeholder="https://contoh.com/video.mp4 atau .mkv / .mov" required
+                        class="flex-1 bg-slate-950 border border-slate-800 focus:border-sky-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none transition">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm shrink-0 transition flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-plus"></i>
+                        Muat URL
+                    </button>
+                </form>
+            </div>
+
+            <!-- Playlist Card -->
+            <div class="bg-slate-900/70 border border-slate-800/90 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col flex-1 min-h-[420px]">
+                <div class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                            <i class="ph-fill ph-playlist text-sky-400 text-lg"></i>
+                            Daftar Putar Video
+                        </h3>
+                        <p id="playlistCountText" class="text-xs text-slate-400 mt-0.5">0 video dalam antrean</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label for="fileInput" class="cursor-pointer p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs border border-slate-700 transition" title="Tambah File ke Daftar Putar">
+                            <i class="ph-bold ph-plus text-sm"></i>
+                        </label>
+                        <button id="btnClearPlaylist" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs border border-slate-700 transition" title="Bersihkan Daftar Putar">
+                            <i class="ph-bold ph-trash text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Badges -->
+                <div class="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+                    <button data-filter="ALL" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-500 text-slate-950 transition">
+                        Semua
+                    </button>
+                    <button data-filter="MP4" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        .MP4
+                    </button>
+                    <button data-filter="MKV" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        .MKV
+                    </button>
+                    <button data-filter="MOV" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                        .MOV
+                    </button>
+                </div>
+
+                <!-- Playlist Items List -->
+                <div id="playlistContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[420px]">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <!-- Dropzone Footer inside Playlist -->
+                <label for="fileInput" class="mt-4 cursor-pointer border border-dashed border-slate-700 hover:border-sky-400 bg-slate-950/50 hover:bg-slate-900/80 rounded-xl p-3.5 text-center transition group">
+                    <div class="flex items-center justify-center gap-2 text-xs font-medium text-slate-300 group-hover:text-sky-400">
+                        <i class="ph-bold ph-upload-simple text-base"></i>
+                        <span>Tambah File .MP4, .MKV, atau .MOV</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </main>
+
+    <!-- Codec & Keyboard Shortcuts Modal -->
+    <div id="infoModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center gap-2.5">
+                    <i class="ph-fill ph-info text-2xl text-sky-400"></i>
+                    <h3 class="text-lg font-bold text-white">Panduan Format Video & Pintasan Keyboard</h3>
+                </div>
+                <button id="btnCloseModal" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <i class="ph-bold ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Format Compatibility Section -->
+            <div class="space-y-3">
+                <h4 class="text-sm font-semibold text-sky-400 uppercase tracking-wider">Dukungan Format & Codec Browser</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-mono font-bold">.MP4</span>
+                        <p class="text-slate-300 font-medium">Kompatibilitas Terbaik</p>
+                        <p class="text-slate-400 leading-relaxed">Didukung penuh di semua browser modern (H.264, AV1, AAC, MP3).</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-mono font-bold">.MKV</span>
+                        <p class="text-slate-300 font-medium">Matroska Video</p>
+                        <p class="text-slate-400 leading-relaxed">Berjalan lancar di Chrome/Edge/Brave untuk codec H.264/VP9/AV1. Trek audio DTS/AC3 mungkin bisu di browser.</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-mono font-bold">.MOV</span>
+                        <p class="text-slate-300 font-medium">Apple QuickTime</p>
+                        <p class="text-slate-400 leading-relaxed">Didukung langsung jika memakai codec H.264/AAC (Safari mendukung penuh termasuk HEVC/ProRes).</p>
+                    </div>
+                </div>
+
+                <!-- Live Browser Codec Check -->
+                <div class="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800">
+                    <div class="text-xs font-semibold text-slate-300 mb-2">Deteksi Kemampuan Browser Anda Saat Ini:</div>
+                    <div id="codecCheckGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div class="space-y-3">
+                <h4 class="text-sm font-semibold text-sky-400 uppercase tracking-wider">Pintasan Keyboard</h4>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Putar / Jeda</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">Spasi / K</kbd>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Layar Penuh</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">F</kbd>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Bisu (Mute)</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">M</kbd>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Mundur / Maju</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">← / →</kbd>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Volume +/-</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">↑ / ↓</kbd>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Mode Teater</span>
+                        <kbd class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">T</kbd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application JavaScript -->
+    <script>
+        // ==========================================
+        // STATE & SAMPLE PLAYLIST INITIALIZATION
+        // ==========================================
+        const state = {
+            playlist: [
+                {
+                    id: 'sample-mp4',
+                    name: 'Big Buck Bunny (Sampel Standar .MP4)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                    format: 'MP4',
+                    size: '158 MB (Stream)',
+                    isLocal: false
+                },
+                {
+                    id: 'sample-mkv',
+                    name: 'Sintel Trailer (Simulasi Kontainer .MKV)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+                    format: 'MKV',
+                    size: '129 MB (Stream)',
+                    isLocal: false
+                },
+                {
+                    id: 'sample-mov',
+                    name: 'Tears of Steel (Simulasi QuickTime .MOV)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+                    format: 'MOV',
+                    size: '185 MB (Stream)',
+                    isLocal: false
+                }
+            ],
+            currentIndex: -1,
+            activeFilter: 'ALL',
+            isTheaterMode: false,
+            fitMode: 'contain', // 'contain' | 'cover' | 'fill'
+            idleTimer: null
+        };
+
+        // ==========================================
+        // DOM ELEMENTS
+        // ==========================================
+        const video = document.getElementById('mainVideo');
+        const playerContainer = document.getElementById('playerContainer');
+        const playerColumn = document.getElementById('playerColumn');
+        const sidebarColumn = document.getElementById('sidebarColumn');
+        const emptyStateOverlay = document.getElementById('emptyStateOverlay');
+        const errorOverlay = document.getElementById('errorOverlay');
+        const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const centerStatusIcon = document.getElementById('centerStatusIcon');
+        const centerIconInner = document.getElementById('centerIconInner');
+
+        // Controls
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const iconPlayPause = document.getElementById('iconPlayPause');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const btnRewind = document.getElementById('btnRewind');
+        const btnForward = document.getElementById('btnForward');
+        const btnMute = document.getElementById('btnMute');
+        const iconVolume = document.getElementById('iconVolume');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const progressSlider = document.getElementById('progressSlider');
+        const playedBar = document.getElementById('playedBar');
+        const bufferedBar = document.getElementById('bufferedBar');
+        const progressTooltip = document.getElementById('progressTooltip');
+        const currentTimeText = document.getElementById('currentTimeText');
+        const durationText = document.getElementById('durationText');
+        const speedSelect = document.getElementById('speedSelect');
+        const btnLoop = document.getElementById('btnLoop');
+        const btnScreenshot = document.getElementById('btnScreenshot');
+        const btnPiP = document.getElementById('btnPiP');
+        const btnTheater = document.getElementById('btnTheater');
+        const btnFullscreen = document.getElementById('btnFullscreen');
+        const iconFullscreen = document.getElementById('iconFullscreen');
+
+        // Top & Metadata Display
+        const activeFormatBadge = document.getElementById('activeFormatBadge');
+        const activeVideoTitle = document.getElementById('activeVideoTitle');
+        const resText = document.getElementById('resText');
+        const metaFormatPill = document.getElementById('metaFormatPill');
+        const metaTitle = document.getElementById('metaTitle');
+        const metaSourceType = document.getElementById('metaSourceType');
+        const specContainer = document.getElementById('specContainer');
+        const specResolution = document.getElementById('specResolution');
+        const specSize = document.getElementById('specSize');
+        const specDuration = document.getElementById('specDuration');
+        const codecHintBanner = document.getElementById('codecHintBanner');
+        const hintExtName = document.getElementById('hintExtName');
+
+        // Inputs & Playlist
+        const fileInput = document.getElementById('fileInput');
+        const subtitleInput = document.getElementById('subtitleInput');
+        const urlForm = document.getElementById('urlForm');
+        const urlInput = document.getElementById('urlInput');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const playlistCountText = document.getElementById('playlistCountText');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '00:00';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            if (hrs > 0) {
+                return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || isNaN(bytes)) return '-';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
+            }
+            return `${size.toFixed(size >= 10 || i === 0 ? 1 : 2)} ${units[i]}`;
+        }
+
+        function detectFormatFromFilename(nameOrUrl) {
+            const clean = nameOrUrl.split('?')[0].toLowerCase();
+            if (clean.endsWith('.mkv')) return 'MKV';
+            if (clean.endsWith('.mov') || clean.endsWith('.qt')) return 'MOV';
+            if (clean.endsWith('.mp4') || clean.endsWith('.m4v')) return 'MP4';
+            if (clean.endsWith('.webm')) return 'WEBM';
+            return 'MP4';
+        }
+
+        function getBadgeStyle(format) {
+            switch (format.toUpperCase()) {
+                case 'MKV':
+                    return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+                case 'MOV':
+                    return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                default:
+                    return 'bg-sky-500/20 text-sky-300 border-sky-500/40';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const iconMap = {
+                info: 'ph-info text-sky-400',
+                success: 'ph-check-circle text-emerald-400',
+                warning: 'ph-warning text-amber-400',
+                error: 'ph-warning-octagon text-rose-400'
+            };
+            toast.className = 'flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900/95 border border-slate-700 text-xs sm:text-sm text-white shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0';
+            toast.innerHTML = `<i class="ph-fill ${iconMap[type] || iconMap.info} text-lg"></i><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3400);
+        }
+
+        function triggerCenterAnimation(iconClass) {
+            centerIconInner.className = `ph-fill ${iconClass} text-4xl`;
+            centerStatusIcon.classList.remove('opacity-0', 'scale-75');
+            centerStatusIcon.classList.add('opacity-100', 'scale-100');
+            clearTimeout(centerStatusIcon.timer);
+            centerStatusIcon.timer = setTimeout(() => {
+                centerStatusIcon.classList.remove('opacity-100', 'scale-100');
+                centerStatusIcon.classList.add('opacity-0', 'scale-75');
+            }, 450);
+        }
+
+        // ==========================================
+        // PLAYLIST MANAGEMENT & RENDERING
+        // ==========================================
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            const filtered = state.playlist.filter((item) => {
+                if (state.activeFilter === 'ALL') return true;
+                return item.format.toUpperCase() === state.activeFilter;
+            });
+
+            playlistCountText.textContent = `${state.playlist.length} video tersedia (${filtered.length} ditampilkan)`;
+
+            if (filtered.length === 0) {
+                playlistContainer.innerHTML = `
+                    <div class="h-48 flex flex-col items-center justify-center text-center p-4 text-slate-500">
+                        <i class="ph-duotone ph-video-camera-slash text-3xl mb-2"></i>
+                        <p class="text-xs">Tidak ada video dengan filter ini.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach((item) => {
+                const realIndex = state.playlist.findIndex(v => v.id === item.id);
+                const isActive = realIndex === state.currentIndex;
+
+                const row = document.createElement('div');
+                row.className = `group flex items-center justify-between gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                    isActive
+                        ? 'bg-sky-500/15 border-sky-500/50 text-white shadow-sm'
+                        : 'bg-slate-950/60 hover:bg-slate-800/70 border-slate-800/80 text-slate-300'
+                }`;
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            isActive ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 group-hover:text-white'
+                        }">
+                            <i class="ph-fill ${isActive && !video.paused ? 'ph-speaker-high animate-pulse' : 'ph-play'} text-base"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold border ${getBadgeStyle(item.format)}">
+                                    ${item.format}
+                                </span>
+                                <p class="text-xs sm:text-sm font-medium truncate ${isActive ? 'text-sky-300 font-semibold' : 'text-slate-200'}">
+                                    ${item.name}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 font-mono">
+                                <span>${item.size}</span>
+                                <span>•</span>
+                                <span>${item.isLocal ? 'File Lokal' : 'Streaming'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-remove-item opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition" title="Hapus dari daftar">
+                        <i class="ph-bold ph-x text-xs"></i>
+                    </button>
+                `;
+
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-remove-item')) {
+                        e.stopPropagation();
+                        removeVideoFromPlaylist(realIndex);
+                        return;
+                    }
+                    loadAndPlayIndex(realIndex);
+                });
+
+                playlistContainer.appendChild(row);
+            });
+        }
+
+        function removeVideoFromPlaylist(index) {
+            const removed = state.playlist[index];
+            if (removed && removed.isLocal && removed.url.startsWith('blob:')) {
+                URL.revokeObjectURL(removed.url);
+            }
+            state.playlist.splice(index, 1);
+
+            if (state.currentIndex === index) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+                state.currentIndex = -1;
+                emptyStateOverlay.classList.remove('hidden');
+            } else if (state.currentIndex > index) {
+                state.currentIndex--;
+            }
+            renderPlaylist();
+            showToast('Video dihapus dari daftar putar', 'info');
+        }
+
+        // ==========================================
+        // LOAD & PLAY VIDEO ITEM
+        // ==========================================
+        function loadAndPlayIndex(index) {
+            if (index < 0 || index >= state.playlist.length) return;
+            const item = state.playlist[index];
+            state.currentIndex = index;
+
+            // Hide welcome & error overlays
+            emptyStateOverlay.classList.add('hidden');
+            errorOverlay.classList.add('hidden');
+            errorOverlay.classList.remove('flex');
+
+            // Show hint banner if MKV or MOV
+            if (item.format === 'MKV' || item.format === 'MOV') {
+                hintExtName.textContent = `.${item.format}`;
+                codecHintBanner.classList.remove('hidden');
+            } else {
+                codecHintBanner.classList.add('hidden');
+            }
+
+            // Update UI Metadata immediately
+            activeFormatBadge.textContent = item.format;
+            activeVideoTitle.textContent = item.name;
+            metaFormatPill.textContent = `.${item.format}`;
+            metaFormatPill.className = `px-2.5 py-0.5 rounded-md text-xs font-mono font-bold border ${getBadgeStyle(item.format)}`;
+            metaTitle.textContent = item.name;
+            metaSourceType.textContent = item.isLocal
+                ? `Diputar langsung dari penyimpanan lokal (${item.mimeType || 'video/' + item.format.toLowerCase()})`
+                : `Streaming dari URL Eksternal`;
+
+            specContainer.textContent = `${item.format} (${item.mimeType || 'Kontainer Video'})`;
+            specSize.textContent = item.size || '-';
+            specResolution.textContent = 'Memuat...';
+            specDuration.textContent = 'Memuat...';
+
+            // Reset source and load
+            video.src = item.url;
+            video.playbackRate = parseFloat(speedSelect.value) || 1;
+            video.load();
+
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch((err) => {
+                    // Autoplay policy or codec issue handled by error listener if truly unsupported
+                    console.warn('Info pemutaran:', err.message);
+                });
+            }
+
+            renderPlaylist();
+        }
+
+        // ==========================================
+        // ADD LOCAL FILES (MP4, MKV, MOV)
+        // ==========================================
+        function handleLocalFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+
+            let addedVideoCount = 0;
+            let firstNewIndex = state.playlist.length;
+
+            Array.from(fileList).forEach((file) => {
+                const lowerName = file.name.toLowerCase();
+
+                // Check if user dropped a subtitle file (.srt or .vtt)
+                if (lowerName.endsWith('.srt') || lowerName.endsWith('.vtt')) {
+                    loadSubtitleFile(file);
+                    return;
+                }
+
+                // Check valid video extensions
+                const isSupportedExt =
+                    lowerName.endsWith('.mp4') ||
+                    lowerName.endsWith('.mkv') ||
+                    lowerName.endsWith('.mov') ||
+                    lowerName.endsWith('.webm') ||
+                    lowerName.endsWith('.m4v') ||
+                    file.type.startsWith('video/');
+
+                if (!isSupportedExt) {
+                    showToast(`Format file "${file.name}" bukan MP4/MKV/MOV.`, 'warning');
+                    return;
+                }
+
+                const ext = detectFormatFromFilename(file.name);
+                const objectUrl = URL.createObjectURL(file);
+
+                state.playlist.push({
+                    id: 'local-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+                    name: file.name,
+                    url: objectUrl,
+                    format: ext,
+                    size: formatFileSize(file.size),
+                    mimeType: file.type || (ext === 'MKV' ? 'video/x-matroska' : ext === 'MOV' ? 'video/quicktime' : 'video/mp4'),
+                    isLocal: true
+                });
+
+                addedVideoCount++;
+            });
+
+            if (addedVideoCount > 0) {
+                renderPlaylist();
+                loadAndPlayIndex(firstNewIndex);
+                showToast(`${addedVideoCount} file video berhasil dimuat!`, 'success');
+            }
+        }
+
+        // ==========================================
+        // SUBTITLE (.SRT & .VTT) CONVERTER & LOADER
+        // ==========================================
+        function loadSubtitleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let content = e.target.result;
+                // Convert .SRT to WebVTT automatically if needed
+                if (file.name.toLowerCase().endsWith('.srt')) {
+                    content = 'WEBVTT\n\n' + content.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+                }
+                const vttBlob = new Blob([content], { type: 'text/vtt' });
+                const vttUrl = URL.createObjectURL(vttBlob);
+                const track = document.getElementById('subtitleTrack');
+                track.src = vttUrl;
+                if (video.textTracks && video.textTracks[0]) {
+                    video.textTracks[0].mode = 'showing';
+                }
+                showToast(`Subtitle "${file.name}" berhasil diaktifkan!`, 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // VIDEO ELEMENT EVENT LISTENERS
+        // ==========================================
+        video.addEventListener('play', () => {
+            iconPlayPause.className = 'ph-fill ph-pause text-xl sm:text-2xl';
+            renderPlaylist();
+        });
+
+        video.addEventListener('pause', () => {
+            iconPlayPause.className = 'ph-fill ph-play text-xl sm:text-2xl';
+            renderPlaylist();
+        });
+
+        video.addEventListener('waiting', () => {
+            loadingSpinner.classList.remove('hidden');
+        });
+
+        video.addEventListener('playing', () => {
+            loadingSpinner.classList.add('hidden');
+            errorOverlay.classList.add('hidden');
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+            loadingSpinner.classList.add('hidden');
+            durationText.textContent = formatTime(video.duration);
+            specDuration.textContent = formatTime(video.duration);
+
+            const w = video.videoWidth;
+            const h = video.videoHeight;
+            if (w && h) {
+                let qualityLabel = '';
+                if (h >= 2160) qualityLabel = ' (4K UHD)';
+                else if (h >= 1080) qualityLabel = ' (Full HD)';
+                else if (h >= 720) qualityLabel = ' (HD)';
+                resText.textContent = `${w} × ${h}`;
+                specResolution.textContent = `${w} × ${h}${qualityLabel}`;
+                document.getElementById('activeResolutionBadge').classList.remove('hidden');
+            } else {
+                resText.textContent = 'Audio / Unknown';
+                specResolution.textContent = 'Tidak terdeteksi';
+            }
+        });
+
+        video.addEventListener('timeupdate', () => {
+            if (!video.duration) return;
+            const pct = (video.currentTime / video.duration) * 100;
+            playedBar.style.width = `${pct}%`;
+            progressSlider.value = Math.floor((video.currentTime / video.duration) * 1000);
+            currentTimeText.textContent = formatTime(video.currentTime);
+        });
+
+        video.addEventListener('progress', () => {
+            if (video. duration > 0 && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const bufferedPct = Math.min(100, (bufferedEnd / video.duration) * 100);
+                bufferedBar.style.width = `${bufferedPct}%`;
+            }
+        });
+
+        video.addEventListener('ended', () => {
+            if (video.loop) return;
+            // Auto play next video in playlist
+            if (state.currentIndex + 1 < state.playlist.length) {
+                showToast('Memutar video berikutnya...', 'info');
+                loadAndPlayIndex(state.currentIndex + 1);
+            }
+        });
+
+        video.addEventListener('error', () => {
+            loadingSpinner.classList.add('hidden');
+            const currentItem = state.playlist[state.currentIndex];
+            const fmt = currentItem ? currentItem.format : 'VIDEO';
+            document.getElementById('errorFormatBadge').textContent = `ERROR PEMUTARAN .${fmt}`;
+            document.getElementById('errorTitle').textContent = `Gagal Memutar File "${currentItem ? currentItem.name : ''}"`;
+
+            let detailMsg = 'File video rusak, URL tidak dapat diakses, atau menggunakan codec yang tidak didukung secara native oleh browser.';
+            if (fmt === 'MKV' || fmt === 'MOV') {
+                detailMsg = `Kontainer .${fmt} ini kemungkinan dikodekan dengan codec HEVC (H.265) 10-bit atau codec pemilik khusus yang tidak didukung oleh mesin dekoder browser Anda.`;
+            }
+            document.getElementById('errorMessage').textContent = detailMsg;
+            errorOverlay.classList.remove('hidden');
+            errorOverlay.classList.add('flex');
+        });
+
+        // ==========================================
+        // CUSTOM CONTROLS INTERACTIONS
+        // ==========================================
+        function togglePlay() {
+            if (state.currentIndex === -1 && state.playlist.length > 0) {
+                loadAndPlayIndex(0);
+                return;
+            }
+            if (video.paused || video.ended) {
+                video.play();
+                triggerCenterAnimation('ph-play');
+            } else {
+                video.pause();
+                triggerCenterAnimation('ph-pause');
+            }
+        }
+
+        btnPlayPause.addEventListener('click', togglePlay);
+        video.addEventListener('click', togglePlay);
+        video.addEventListener('dblclick', toggleFullscreen);
+
+        btnPrev.addEventListener('click', () => {
+            if (state.currentIndex > 0) {
+                loadAndPlayIndex(state.currentIndex - 1);
+            } else {
+                video.currentTime = 0;
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (state.currentIndex + 1 < state.playlist.length) {
+                loadAndPlayIndex(state.currentIndex + 1);
+            } else {
+                showToast('Ini adalah video terakhir di daftar putar.', 'info');
+            }
+        });
+
+        btnRewind.addEventListener('click', () => {
+            video.currentTime = Math.max(0, video.currentTime - 10);
+            triggerCenterAnimation('ph-arrow-counter-clockwise');
+        });
+
+        btnForward.addEventListener('click', () => {
+            if (video.duration) {
+                video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                triggerCenterAnimation('ph-arrow-clockwise');
+            }
+        });
+
+        // Seek bar
+        progressSlider.addEventListener('input', (e) => {
+            if (!video.duration) return;
+            const seekTime = (e.target.value / 1000) * video.duration;
+            video.currentTime = seekTime;
+            playedBar.style.width = `${(e.target.value / 1000) * 100}%`;
+        });
+
+        progressSlider.addEventListener('mousemove', (e) => {
+            if (!video.duration) return;
+            const rect = progressSlider.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const hoverTime = pos * video.duration;
+            progressTooltip.textContent = formatTime(hoverTime);
+            progressTooltip.style.left = `${pos * 100}%`;
+        });
+
+        // Volume & Mute
+        function updateVolumeUI() {
+            if (video.muted || video.volume === 0) {
+                iconVolume.className = 'ph-fill ph-speaker-slash text-xl text-rose-400';
+            } else if (video.volume < 0.5) {
+                iconVolume.className = 'ph-fill ph-speaker-low text-xl';
+            } else {
+                iconVolume.className = 'ph-fill ph-speaker-high text-xl';
+            }
+        }
+
+        btnMute.addEventListener('click', () => {
+            video.muted = !video.muted;
+            volumeSlider.value = video.muted ? 0 : video.volume;
+            updateVolumeUI();
+            triggerCenterAnimation(video.muted ? 'ph-speaker-slash' : 'ph-speaker-high');
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            video.volume = parseFloat(e.target.value);
+            video.muted = video.volume === 0;
+            updateVolumeUI();
+        });
+
+        // Playback Speed
+        speedSelect.addEventListener('change', (e) => {
+            video.playbackRate = parseFloat(e.target.value);
+            showToast(`Kecepatan pemutaran: ${e.target.value}x`, 'info');
+        });
+
+        // Loop Toggle
+        btnLoop.addEventListener('click', () => {
+            video.loop = !video.loop;
+            btnLoop.classList.toggle('text-sky-400', video.loop);
+            btnLoop.classList.toggle('bg-sky-500/15', video.loop);
+            showToast(video.loop ? 'Ulangi video (Loop) diaktifkan' : 'Ulangi video dinonaktifkan', 'info');
+        });
+
+        // Screenshot Capture
+        btnScreenshot.addEventListener('click', () => {
+            if (!video.videoWidth) {
+                showToast('Tidak ada frame video untuk ditangkap.', 'warning');
+                return;
+            }
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `tangkapan-layar-${Date.now()}.png`;
+                a.click();
+                showToast('Tangkapan layar berhasil disimpan!', 'success');
+            } catch (err) {
+                showToast('Tangkapan layar dibatasi oleh kebijakan CORS server eksternal (Gunakan file lokal).', 'warning');
+            }
+        });
+
+        // Picture-in-Picture
+        btnPiP.addEventListener('click', async () => {
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else if (document.pictureInPictureEnabled && video.readyState >= 1) {
+                    await video.requestPictureInPicture();
+                } else {
+                    showToast('Muat video terlebih dahulu untuk mode Picture-in-Picture.', 'warning');
+                }
+            } catch (err) {
+                showToast('Picture-in-Picture tidak didukung pada video ini.', 'warning');
+            }
+        });
+
+        // Theater Mode
+        function toggleTheaterMode() {
+            state.isTheaterMode = !state.isTheaterMode;
+            if (state.isTheaterMode) {
+                playerColumn.classList.remove('lg:col-span-8');
+                playerColumn.classList.add('lg:col-span-12');
+                sidebarColumn.classList.remove('lg:col-span-4');
+                sidebarColumn.classList.add('lg:col-span-12');
+                btnTheater.classList.add('text-sky-400');
+            } else {
+                playerColumn.classList.add('lg:col-span-8');
+                playerColumn.classList.remove('lg:col-span-12');
+                sidebarColumn.classList.add('lg:col-span-4');
+                sidebarColumn.classList.remove('lg:col-span-12');
+                btnTheater.classList.remove('text-sky-400');
+            }
+        }
+        btnTheater.addEventListener('click', toggleTheaterMode);
+
+        // Aspect Fit Mode Toggle
+        document.getElementById('btnFitToggle').addEventListener('click', () => {
+            const modes = [
+                { class: 'object-contain', label: 'Rasio: Proporsional' },
+                { class: 'object-cover', label: 'Rasio: Penuh (Crop)' },
+                { class: 'object-fill', label: 'Rasio: Rentangkan' }
+            ];
+            const currentIdx = modes.findIndex(m => video.classList.contains(m.class));
+            const nextIdx = (currentIdx + 1) % modes.length;
+            modes.forEach(m => video.classList.remove(m.class));
+            video.classList.add(modes[nextIdx].class);
+            document.getElementById('fitModeText').textContent = modes[nextIdx].label;
+        });
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                playerContainer.requestFullscreen().catch(() => {});
+                iconFullscreen.className = 'ph-bold ph-corners-in text-xl';
+            } else {
+                document.exitFullscreen().catch(() => {});
+                iconFullscreen.className = 'ph-bold ph-corners-out text-xl';
+            }
+        }
+        btnFullscreen.addEventListener('click', toggleFullscreen);
+
+        // Auto-hide cursor & controls on mouse inactivity inside player
+        playerContainer.addEventListener('mousemove', () => {
+            playerContainer.classList.remove('player-idle');
+            clearTimeout(state.idleTimer);
+            if (!video.paused) {
+                state.idleTimer = setTimeout(() => {
+                    playerContainer.classList.add('player-idle');
+                }, 2800);
+            }
+        });
+
+        // ==========================================
+        // FILE INPUTS, DRAG-AND-DROP & URL FORM
+        // ==========================================
+        fileInput.addEventListener('change', (e) => {
+            handleLocalFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        subtitleInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                loadSubtitleFile(e.target.files[0]);
+                subtitleInput.value = '';
+            }
+        });
+
+        // Drag & Drop over whole window
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZoneOverlay.classList.remove('hidden');
+            dropZoneOverlay.classList.add('flex');
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget === null) {
+                dropZoneOverlay.classList.add('hidden');
+                dropZoneOverlay.classList.remove('flex');
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZoneOverlay.classList.add('hidden');
+            dropZoneOverlay.classList.remove('flex');
+            if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                handleLocalFiles(e.dataTransfer.files);
+            }
+        });
+
+        // External URL Form
+        urlForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rawUrl = urlInput.value.trim();
+            if (!rawUrl) return;
+
+            const ext = detectFormatFromFilename(rawUrl);
+            const urlParts = rawUrl.split('/');
+            const fileName = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]) || `Streaming Video (${ext})`;
+
+            state.playlist.push({
+                id: 'url-' + Date.now(),
+                name: fileName,
+                url: rawUrl,
+                format: ext,
+                size: 'Stream Eksternal',
+                isLocal: false
+            });
+
+            urlInput.value = '';
+            renderPlaylist();
+            loadAndPlayIndex(state.playlist.length - 1);
+            showToast('URL video berhasil ditambahkan dan diputar!', 'success');
+        });
+
+        // Playlist Filter Buttons
+        filterButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                state.activeFilter = btn.dataset.filter;
+                filterButtons.forEach(b => {
+                    b.className = 'filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                });
+                btn.className = 'filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-500 text-slate-950 transition';
+                renderPlaylist();
+            });
+        });
+
+        document.getElementById('btnClearPlaylist').addEventListener('click', () => {
+            state.playlist.forEach(item => {
+                if (item.isLocal && item.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(item.url);
+                }
+            });
+            state.playlist = [];
+            state.currentIndex = -1;
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            emptyStateOverlay.classList.remove('hidden');
+            renderPlaylist();
+            showToast('Daftar putar telah dibersihkan.', 'info');
+        });
+
+        document.getElementById('btnLoadDemo').addEventListener('click', () => {
+            if (state.playlist.length > 0) {
+                loadAndPlayIndex(0);
+            }
+        });
+
+        document.getElementById('btnRetryForcePlay').addEventListener('click', () => {
+            if (state.currentIndex >= 0) {
+                loadAndPlayIndex(state.currentIndex);
+            }
+        });
+
+        document.getElementById('btnCloseHint').addEventListener('click', () => {
+            codecHintBanner.classList.add('hidden');
+        });
+
+        // ==========================================
+        // CODEC CHECKER & MODAL
+        // ==========================================
+        const infoModal = document.getElementById('infoModal');
+        document.getElementById('btnCodecInfo').addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            infoModal.classList.add('hidden');
+        });
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) infoModal.classList.add('hidden');
+        });
+
+        function populateBrowserCodecSupport() {
+            const codecsToTest = [
+                { label: 'MP4 (H.264 + AAC)', mime: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"' },
+                { label: 'MP4 (AV1)', mime: 'video/mp4; codecs="av01.0.05M.08"' },
+                { label: 'MKV (H.264)', mime: 'video/x-matroska; codecs="avc1.42E01E"' },
+                { label: 'MKV (VP9)', mime: 'video/x-matroska; codecs="vp9"' },
+                { label: 'MOV (QuickTime)', mime: 'video/quicktime' },
+                { label: 'HEVC / H.265', mime: 'video/mp4; codecs="hev1.1.6.L93.B0"' }
+            ];
+
+            const grid = document.getElementById('codecCheckGrid');
+            grid.innerHTML = '';
+
+            codecsToTest.forEach(item => {
+                const support = video.canPlayType(item.mime);
+                const isSupported = support === 'probably' || support === 'maybe';
+                const badge = document.createElement('div');
+                badge.className = `p-2 rounded-lg border flex items-center justify-between ${
+                    isSupported
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`;
+                badge.innerHTML = `
+                    <span>${item.label}</span>
+                    <i class="ph-fill ${isSupported ? 'ph-check-circle text-emerald-400' : 'ph-minus-circle text-slate-500'}"></i>
+                `;
+                grid.appendChild(badge);
+            });
+        }
+
+        // ==========================================
+        // KEYBOARD SHORTCUTS
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+            switch (e.key.toLowerCase()) {
+                case ' ':
+                case 'k':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'm':
+                    e.preventDefault();
+                    btnMute.click();
+                    break;
+                case 't':
+                    e.preventDefault();
+                    toggleTheaterMode();
+                    break;
+                case 'arrowright':
+                case 'l':
+                    e.preventDefault();
+                    btnForward.click();
+                    break;
+                case 'arrowleft':
+                case 'j':
+                    e.preventDefault();
+                    btnRewind.click();
+                    break;
+                case 'arrowup':
+                    e.preventDefault();
+                    video.volume = Math.min(1, +(video.volume + 0.05).toFixed(2));
+                    video.muted = false;
+                    volumeSlider.value = video.volume;
+                    updateVolumeUI();
+                    showToast(`Volume: ${Math.round(video.volume * 100)}%`, 'info');
+                    break;
+                case 'arrowdown':
+                    e.preventDefault();
+                    video.volume = Math.max(0, +(video.volume - 0.05).toFixed(2));
+                    volumeSlider.value = video.volume;
+                    updateVolumeUI();
+                    showToast(`Volume: ${Math.round(video.volume * 100)}%`, 'info');
+                    break;
+            }
+        });
+
+        // Initial Render
+        renderPlaylist();
+        populateBrowserCodecSupport();
+    </script>
+</body>
+</html>
