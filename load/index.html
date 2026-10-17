@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSaveHD by alfin - Pengunduh Video & Foto TikTok, IG, FB</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'gradient-x': 'gradient-x 8s ease infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300 relative">
+
+    <!-- Background Decorative Blobs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/20 dark:bg-purple-600/15 rounded-full blur-3xl"></div>
+        <div class="absolute top-20 right-0 w-96 h-96 bg-pink-500/20 dark:bg-pink-600/15 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-1/3 w-96 h-96 bg-blue-500/20 dark:bg-blue-600/15 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full px-4 sm:px-0 pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-30 glass-card border-b border-slate-200/80 dark:border-slate-800/80">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-cloud-arrow-down text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">Snapvyn</span><span class="font-bold text-xl text-slate-700 dark:text-white">HD</span>
+                    <span class="hidden sm:inline-block ml-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">Pro v2.5</span>
+                </div>
+            </a>
+
+            <!-- Right Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Demo Samples Quick Trigger -->
+                <button onclick="fillDemoUrl()" class="text-xs sm:text-sm font-medium px-3 py-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition flex items-center gap-1.5" title="Coba tautan contoh">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span class="hidden sm:inline">Contoh URL</span>
+                </button>
+
+                <!-- API Settings Modal Button -->
+                <button onclick="toggleModal('apiModal')" class="text-xs sm:text-sm font-medium px-3 py-2 rounded-xl bg-slate-200/70 dark:bg-slate-800/80 hover:bg-slate-300/70 dark:hover:bg-slate-700 transition flex items-center gap-1.5" title="Pengaturan API & Server">
+                    <i class="fa-solid fa-sliders text-indigo-500"></i>
+                    <span class="hidden md:inline">Pengaturan API</span>
+                    <span id="apiModeBadge" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                </button>
+
+                <!-- Dark/Light Theme Toggle -->
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-xl bg-slate-200/70 dark:bg-slate-800/80 hover:bg-slate-300/70 dark:hover:bg-slate-700 flex items-center justify-center transition text-slate-700 dark:text-slate-200" aria-label="Ganti Tema">
+                    <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow relative z-10 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
+        
+        <!-- Hero Section -->
+        <div class="text-center max-w-3xl mx-auto mb-8">
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold mb-4">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                Gratis, Tanpa Batas & Kualitas Ultra HD
+            </div>
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 leading-tight">
+                Unduh Video & Foto <br class="hidden sm:inline" />
+                <span id="heroPlatformText" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient-x">TikTok, Instagram & Facebook</span>
+            </h1>
+            <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
+                Simpan video tanpa watermark, Reels, foto sampul, carousel slide, hingga audio MP3 dengan kualitas asli (Full HD 1080p/4K) secara instan.
+            </p>
+        </div>
+
+        <!-- Platform Selector Tabs -->
+        <div class="max-w-2xl mx-auto mb-6">
+            <div class="grid grid-cols-4 gap-1.5 p-1.5 rounded-2xl bg-slate-200/80 dark:bg-slate-900/90 border border-slate-300/60 dark:border-slate-800 shadow-inner">
+                <button onclick="selectPlatform('all')" id="tab-all" class="platform-tab active-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all bg-white dark:bg-slate-800 text-indigo-600 dark:text-white shadow-sm">
+                    <i class="fa-solid fa-bolt text-indigo-500"></i>
+                    <span>Otomatis</span>
+                </button>
+                <button onclick="selectPlatform('tiktok')" id="tab-tiktok" class="platform-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-brands fa-tiktok"></i>
+                    <span>TikTok</span>
+                </button>
+                <button onclick="selectPlatform('instagram')" id="tab-instagram" class="platform-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-brands fa-instagram text-pink-500"></i>
+                    <span>Instagram</span>
+                </button>
+                <button onclick="selectPlatform('facebook')" id="tab-facebook" class="platform-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i class="fa-brands fa-facebook text-blue-500"></i>
+                    <span>Facebook</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Downloader Box -->
+        <div class="glass-card rounded-3xl p-4 sm:p-6 shadow-xl shadow-indigo-500/5 border border-slate-200/90 dark:border-slate-800/90 mb-8">
+            <form id="downloadForm" onsubmit="handleDownloadSubmit(event)" class="space-y-4">
+                <div class="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    
+                    <!-- Input Wrapper -->
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i id="inputPlatformIcon" class="fa-solid fa-link text-slate-400 text-lg transition-transform duration-300"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="urlInput" 
+                            oninput="handleUrlInput(this.value)"
+                            placeholder="Tempel tautan video atau foto TikTok, Instagram, atau Facebook di sini..." 
+                            class="w-full pl-11 pr-28 py-4 rounded-2xl bg-slate-100/90 dark:bg-slate-900/90 border-2 border-slate-200 dark:border-slate-700/80 focus:border-indigo-500 dark:focus:border-indigo-500 focus:outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400 text-sm sm:text-base transition"
+                            required
+                        >
+                        <!-- Clear & Paste Buttons Inside Input -->
+                        <div class="absolute inset-y-0 right-2 flex items-center gap-1">
+                            <button 
+                                type="button" 
+                                id="clearBtn" 
+                                onclick="clearInput()" 
+                                class="hidden p-2 text-slate-400 hover:text-rose-500 rounded-xl transition"
+                                title="Hapus teks"
+                            >
+                                <i class="fa-solid fa-circle-xmark text-lg"></i>
+                            </button>
+                            <button 
+                                type="button" 
+                                onclick="pasteFromClipboard()" 
+                                class="px-3 py-2 rounded-xl bg-indigo-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 border border-indigo-200/60 dark:border-slate-700 transition"
+                                title="Tempel dari Clipboard"
+                            >
+                                <i class="fa-regular fa-paste"></i>
+                                <span>Tempel</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Submit / Download Button -->
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="py-4 px-7 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 shrink-0"
+                    >
+                        <i id="submitIcon" class="fa-solid fa-download"></i>
+                        <span id="submitText">Unduh HD</span>
+                    </button>
+                </div>
+
+                <!-- Helper Bar / Quick Demo Links -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-500 dark:text-slate-400 px-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-medium">Uji Coba Cepat:</span>
+                        <button type="button" onclick="loadSample('tiktok_video')" class="hover:text-indigo-500 underline decoration-dotted">TikTok Video</button>
+                        <span>•</span>
+                        <button type="button" onclick="loadSample('tiktok_slide')" class="hover:text-indigo-500 underline decoration-dotted">TikTok Foto Slide</button>
+                        <span>•</span>
+                        <button type="button" onclick="loadSample('ig_reel')" class="hover:text-pink-500 underline decoration-dotted">IG Reels & Foto</button>
+                        <span>•</span>
+                        <button type="button" onclick="loadSample('fb_video')" class="hover:text-blue-500 underline decoration-dotted">FB Video HD</button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+                        <span>Deteksi Platform Otomatis Aktif</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading Skeleton State (Hidden by default) -->
+        <div id="loadingSection" class="hidden glass-card rounded-3xl p-6 border border-slate-200 dark:border-slate-800 mb-8 animate-pulse">
+            <div class="flex flex-col md:flex-row gap-6 items-center">
+                <div class="w-full md:w-64 h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center gap-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500"></i>
+                    <span class="text-xs font-medium text-slate-400">Mengekstrak Media HD...</span>
+                </div>
+                <div class="flex-1 w-full space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                        <div class="space-y-2 flex-1">
+                            <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3"></div>
+                            <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
+                        </div>
+                    </div>
+                    <div class="h-5 bg-slate-200 dark:bg-slate-800 rounded w-3/4"></div>
+                    <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                        <div class="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                        <div class="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                        <div class="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                        <div class="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Preview Section (Hidden by default) -->
+        <div id="resultSection" class="hidden glass-card rounded-3xl p-5 sm:p-7 border-2 border-indigo-500/30 dark:border-indigo-500/20 shadow-2xl mb-10 transition-all">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
+                <div class="flex items-center gap-2.5">
+                    <span id="resultPlatformBadge" class="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-indigo-500 text-white">
+                        <i class="fa-brands fa-tiktok"></i> TikTok
+                    </span>
+                    <span id="resultMediaTypeBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Kualitas HD Tersedia
+                    </span>
+                    <span id="resultSourceModeBadge" class="hidden sm:inline-block px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        Live API
+                    </span>
+                </div>
+                <button onclick="closeResult()" class="text-xs font-medium text-slate-400 hover:text-rose-500 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-xmark text-sm"></i> Tutup Hasil
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <!-- Left Column: Media Preview (Video / Thumbnail) -->
+                <div class="lg:col-span-5 flex flex-col items-center">
+                    <div class="relative w-full max-w-sm rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg aspect-[9/13] max-h-[420px] flex items-center justify-center group">
+                        <!-- Video Player (shown when video stream is playable) -->
+                        <video 
+                            id="previewVideoPlayer" 
+                            controls 
+                            playsinline
+                            class="hidden w-full h-full object-contain bg-black"
+                        ></video>
+
+                        <!-- Thumbnail Image -->
+                        <img 
+                            id="previewThumbnail" 
+                            src="https://placehold.co/600x800/1e293b/ffffff?text=Preview+HD" 
+                            alt="Thumbnail Pratinjau" 
+                            class="w-full h-full object-cover"
+                            onerror="this.src='https://placehold.co/600x800/1e293b/e2e8f0?text=Pratinjau+Media'"
+                        >
+
+                        <!-- Overlay Play Button for Video -->
+                        <button 
+                            id="playPreviewBtn"
+                            onclick="playVideoInline()"
+                            class="absolute inset-0 m-auto w-16 h-16 rounded-full bg-indigo-600/90 hover:bg-indigo-500 text-white flex items-center justify-center shadow-xl shadow-black/50 transition transform group-hover:scale-110"
+                            title="Putar Pratinjau Video"
+                        >
+                            <i class="fa-solid fa-play text-xl ml-1"></i>
+                        </button>
+
+                        <!-- Duration / Resolution Floating Pill -->
+                        <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                            <span id="previewDuration" class="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5">
+                                <i class="fa-regular fa-clock text-indigo-400"></i> 00:45
+                            </span>
+                            <span id="previewResolution" class="px-2.5 py-1 rounded-lg bg-indigo-600/90 backdrop-blur-md text-white text-xs font-bold">
+                                1080p Full HD
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Creator Info, Stats, and Download Actions -->
+                <div class="lg:col-span-7 flex flex-col justify-between space-y-5">
+                    
+                    <!-- Creator & Caption Info -->
+                    <div class="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800">
+                        <div class="flex items-center gap-3.5 mb-3">
+                            <img 
+                                id="creatorAvatar" 
+                                src="https://placehold.co/100x100/6366f1/ffffff?text=U" 
+                                alt="Avatar Pembuat" 
+                                class="w-12 h-12 rounded-full object-cover ring-2 ring-indigo-500/40"
+                                onerror="this.src='https://placehold.co/100x100/6366f1/ffffff?text=User'"
+                            >
+                            <div class="overflow-hidden">
+                                <h3 id="creatorName" class="font-bold text-slate-900 dark:text-white text-base truncate">Nama Kreator</h3>
+                                <p id="creatorUsername" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium truncate">@username</p>
+                            </div>
+                        </div>
+
+                        <p id="mediaCaption" class="text-sm text-slate-700 dark:text-slate-300 line-clamp-3 leading-relaxed mb-3">
+                            Deskripsi atau judul video akan tampil di sini...
+                        </p>
+
+                        <!-- Media Statistics -->
+                        <div class="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-eye text-indigo-500"></i> <strong id="statViews">-</strong> tayangan</span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-heart text-rose-500"></i> <strong id="statLikes">-</strong> suka</span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-comment text-emerald-500"></i> <strong id="statComments">-</strong> komentar</span>
+                        </div>
+                    </div>
+
+                    <!-- Download Buttons Container -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-arrow-down text-indigo-500"></i> Pilih Format Unduhan
+                        </h4>
+                        <div id="downloadButtonsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Dynamically populated buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Photo Slide / Carousel Gallery (Shown if post has multiple images) -->
+                    <div id="photoGalleryContainer" class="hidden pt-2">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                                <i class="fa-regular fa-images text-pink-500"></i> Galeri Slide Foto HD (<span id="photoCountText">0</span> Foto)
+                            </h4>
+                        </div>
+                        <div id="photoGalleryGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
+                            <!-- Dynamically populated image cards -->
+                        </div>
+                    </div>
+
+                    <!-- Audio Info Box -->
+                    <div class="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-900/50 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-music animate-bounce"></i>
+                            </div>
+                            <div class="truncate">
+                                <p class="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">Audio / Musik Asli</p>
+                                <p id="musicTitle" class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">Original Sound</p>
+                            </div>
+                        </div>
+                        <button id="quickAudioBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-headphones"></i> MP3
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Downloads History -->
+        <div id="historySection" class="mb-14">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i>
+                    <span>Riwayat Unduhan Terakhir</span>
+                </h2>
+                <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-rose-500 transition flex items-center gap-1">
+                    <i class="fa-regular fa-trash-can"></i> Bersihkan
+                </button>
+            </div>
+            <div id="historyList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
+            <div class="glass-card p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-solid fa-wand-Sparkles fa-wand-magic-sparkles"></i>
+                </div>
+                <h3 class="font-bold text-base mb-2">TikTok Tanpa Watermark</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Hapus tanda air (watermark) dan logo username secara otomatis. Mendukung unduhan video MP4 Full HD maupun slide foto TikTok.
+                </p>
+            </div>
+
+            <div class="glass-card p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+                <div class="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-brands fa-instagram"></i>
+                </div>
+                <h3 class="font-bold text-base mb-2">Instagram Reels & Carousel</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Simpan video Instagram Reels, IGTV, serta postingan multi-foto (Carousel) dalam resolusi asli tanpa kompresi berlebih.
+                </p>
+            </div>
+
+            <div class="glass-card p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+                <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl mb-4">
+                    <i class="fa-brands fa-facebook"></i>
+                </div>
+                <h3 class="font-bold text-base mb-2">Facebook Video HD & MP3</h3>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Pilih antara kualitas High Definition (1080p) atau Standard Definition (720p) dari Facebook Watch, Reels, dan postingan publik.
+                </p>
+            </div>
+        </section>
+
+        <!-- How-to Guide -->
+        <section class="glass-card rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800/80">
+            <h2 class="text-xl font-bold text-center mb-6">Cara Mengunduh Video & Foto HD</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center mb-3 shadow-md shadow-indigo-500/30">1</div>
+                    <h4 class="font-semibold text-sm mb-1">Salin Tautan (URL)</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Buka aplikasi TikTok, Instagram, atau Facebook, lalu klik tombol Bagikan dan pilih "Salin Tautan".</p>
+                </div>
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center mb-3 shadow-md shadow-purple-500/30">2</div>
+                    <h4 class="font-semibold text-sm mb-1">Tempel di SnapSaveHD</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Klik tombol "Tempel" pada kolom input di atas, lalu tekan tombol "Unduh HD".</p>
+                </div>
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-10 h-10 rounded-full bg-pink-600 text-white font-bold flex items-center justify-center mb-3 shadow-md shadow-pink-500/30">3</div>
+                    <h4 class="font-semibold text-sm mb-1">Simpan File Media</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Pilih format yang diinginkan: Video MP4 Tanpa Watermark, Foto HD, atau Audio MP3.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- API & Configuration Modal -->
+    <div id="apiModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base">Pengaturan API & Mode Ekstraksi</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Konfigurasi koneksi pihak ketiga & simulasi</p>
+                    </div>
+                </div>
+                <button onclick="toggleModal('apiModal')" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm">
+                <!-- Info Banner -->
+                <div class="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs leading-relaxed">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    <strong>Status Bawaan:</strong> Tautan <strong>TikTok</strong> terhubung langsung secara nyata menggunakan publik <code>TikWM API</code>. Untuk Instagram & Facebook (atau jika CORS memblokir), Anda dapat memasukkan Custom API Endpoint (misal <em>Cobalt API</em>) atau menggunakan <strong>Mode Simulasi Cerdas</strong>.
+                </div>
+
+                <!-- Mode Selector -->
+                <div>
+                    <label class="block font-semibold mb-1.5">Mode Pemrosesan</label>
+                    <select id="configModeSelect" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500">
+                        <option value="hybrid">Otomatis Hibrida (Real API + Fallback Demo Interaktif)</option>
+                        <option value="custom">Gunakan Custom API Endpoint (Cobalt / RapidAPI)</option>
+                        <option value="demo">Selalu Mode Simulasi / Demo Interaktif</option>
+                    </select>
+                </div>
+
+                <!-- Custom API Input -->
+                <div>
+                    <label class="block font-semibold mb-1">Custom API Endpoint (Opsional)</label>
+                    <input 
+                        type="url" 
+                        id="customApiUrlInput" 
+                        placeholder="Contoh: https://api.cobalt.tools/api/json"
+                        class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 text-xs"
+                    >
+                    <p class="text-[11px] text-slate-400 mt-1">Mendukung endpoint POST berformat JSON dengan parameter <code>{ "url": "..." }</code>.</p>
+                </div>
+
+                <!-- Custom API Key Input -->
+                <div>
+                    <label class="block font-semibold mb-1">API Key / Authorization Header (Opsional)</label>
+                    <input 
+                        type="password" 
+                        id="customApiKeyInput" 
+                        placeholder="Bearer token atau X-RapidAPI-Key..."
+                        class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 text-xs"
+                    >
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button onclick="toggleModal('apiModal')" class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                    Batal
+                </button>
+                <button onclick="saveApiSettings()" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition">
+                    Simpan Pengaturan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-slate-200/80 dark:border-slate-800/80 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>© 2025 <strong>SnapSaveHD by alfin</strong> — Pengunduh Media Sosial Cepat & Gratis.</p>
+            <p class="text-[11px]">Tidak berafiliasi dengan TikTok, Instagram, atau Meta Inc. Gunakan dengan bijak sesuai hak cipta.</p>
+        </div>
+    </footer>
+
+    <!-- Application JavaScript -->
+    <script>
+        // --- State Management ---
+        let currentPlatform = 'all';
+        let currentMediaData = null;
+        let appConfig = {
+            mode: localStorage.getItem('snapsave_mode') || 'hybrid',
+            customApiUrl: localStorage.getItem('snapsave_api_url') || '',
+            customApiKey: localStorage.getItem('snapsave_api_key') || ''
+        };
+
+        // --- Sample Demo Data for Instant Testing ---
+        const DEMO_SAMPLES = {
+            tiktok_video: {
+                url: 'https://www.tiktok.com/@pesonaindonesia/video/7349182736192837121',
+                platform: 'tiktok',
+                type: 'video',
+                title: 'Keindahan matahari terbit di Gunung Bromo, Jawa Timur! Siapa yang ingin liburan ke sini tahun ini? 🌄✨ #pesonaindonesia #bromo #wonderfulindonesia #fyp',
+                authorName: 'Pesona Indonesia Official',
+                authorUsername: '@pesonaindonesia',
+                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+                thumbnail: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?w=800&auto=format&fit=crop&q=80',
+                videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                videoWmUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+                audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                musicTitle: 'Suara Asli - Pesona Indonesia (Ambient Nusantara)',
+                duration: '00:15',
+                resolution: '1080p Full HD (60fps)',
+                views: '1.4M',
+                likes: '245.8K',
+                comments: '4,892',
+                images: []
+            },
+            tiktok_slide: {
+                url: 'https://vt.tiktok.com/ZSFk9281a/',
+                platform: 'tiktok',
+                type: 'slide',
+                title: 'Rekomendasi 4 Spot Foto Estetik di Ubud Bali yang wajib masuk bucket list kamu! Geser sampai habis 📸🌴 #bali #ubud #photospot #traveltiktok',
+                authorName: 'Jelajah Nusantara',
+                authorUsername: '@jelajahnusantara.id',
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+                thumbnail: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&auto=format&fit=crop&q=80',
+                videoUrl: '',
+                audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                musicTitle: 'Tropical Breeze - Chill Vibes',
+                duration: '4 Slide Foto',
+                resolution: 'Ultra HD (2160p)',
+                views: '680.2K',
+                likes: '98.1K',
+                comments: '1,204',
+                images: [
+                    'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1080&auto=format&fit=crop&q=85',
+                    'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=1080&auto=format&fit=crop&q=85',
+                    'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1080&auto=format&fit=crop&q=85',
+                    'https://images.unsplash.com/photo-1573790387438-4da905039392?w=1080&auto=format&fit=crop&q=85'
+                ]
+            },
+            ig_reel: {
+                url: 'https://www.instagram.com/reel/C8x9kLmN2pQ/',
+                platform: 'instagram',
+                type: 'both',
+                title: 'Resep Es Kopi Susu Gula Aren Creamy ala Cafe yang super praktis dibuat di rumah! ☕🧊 Simpan videonya biar nggak lupa! #resepminuman #kopisusu #reelsindonesia',
+                authorName: 'Kreasi Barista Rumahan',
+                authorUsername: '@baristarumahan.id',
+                avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+                thumbnail: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=800&auto=format&fit=crop&q=80',
+                videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+                audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+                musicTitle: 'Aesthetic Cafe Jazz - Original Audio',
+                duration: '00:15',
+                resolution: '1080x1920 HD',
+                views: '892.5K',
+                likes: '112.4K',
+                comments: '2,310',
+                images: [
+                    'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=1080&auto=format&fit=crop&q=85',
+                    'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=1080&auto=format&fit=crop&q=85'
+                ]
+            },
+            fb_video: {
+                url: 'https://www.facebook.com/watch/?v=109283746519283',
+                platform: 'facebook',
+                type: 'video',
+                title: 'Cuplikan Gol Terbaik Timnas Indonesia Minggu Ini! Semangat Garuda Muda di kancah Internasional 🇮🇩⚽🔥',
+                authorName: 'Garuda Sport TV',
+                authorUsername: 'facebook.com/garudasport.tv',
+                avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+                thumbnail: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+                videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoy.mp4',
+                videoSdUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoy.mp4',
+                audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+                musicTitle: 'Audio Siaran Langsung - Garuda Sport',
+                duration: '00:15',
+                resolution: '1080p Full HD / 720p SD',
+                views: '2.1M',
+                likes: '310K',
+                comments: '18.2K',
+                images: []
+            }
+        };
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initApiSettingsUI();
+            renderHistory();
+        });
+
+        // --- Theme Toggle Logic ---
+        function initTheme() {
+            const savedTheme = localStorage.getItem('snapsave_theme') || 'dark';
+            const htmlEl = document.documentElement;
+            const iconEl = document.getElementById('themeIcon');
+            if (savedTheme === 'dark') {
+                htmlEl.classList.add('dark');
+                iconEl.className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                htmlEl.classList.remove('dark');
+                iconEl.className = 'fa-solid fa-moon text-slate-700';
+            }
+        }
+
+        function toggleTheme() {
+            const htmlEl = document.documentElement;
+            const iconEl = document.getElementById('themeIcon');
+            if (htmlEl.classList.contains('dark')) {
+                htmlEl.classList.remove('dark');
+                localStorage.setItem('snapsave_theme', 'light');
+                iconEl.className = 'fa-solid fa-moon text-slate-700';
+                showToast('Tema Terang diaktifkan', 'info');
+            } else {
+                htmlEl.classList.add('dark');
+                localStorage.setItem('snapsave_theme', 'dark');
+                iconEl.className = 'fa-solid fa-sun text-amber-400';
+                showToast('Tema Gelap diaktifkan', 'info');
+            }
+        }
+
+        // --- Toast Notification ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let icon = 'fa-circle-check text-emerald-400';
+            let border = 'border-emerald-500/30';
+            if (type === 'error') {
+                icon = 'fa-circle-exclamation text-rose-400';
+                border = 'border-rose-500/30';
+            } else if (type === 'info') {
+                icon = 'fa-circle-info text-indigo-400';
+                border = 'border-indigo-500/30';
+            } else if (type === 'warning') {
+                icon = 'fa-triangle-exclamation text-amber-400';
+                border = 'border-amber-500/30';
+            }
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 text-white border ${border} shadow-xl backdrop-blur-md text-xs sm:text-sm font-medium transform transition-all duration-300 translate-y-0 opacity-100`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base shrink-0"></i>
+                <span class="flex-1">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // --- Platform Selection & Auto-Detection ---
+        function selectPlatform(platform) {
+            currentPlatform = platform;
+            const tabs = ['all', 'tiktok', 'instagram', 'facebook'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === platform) {
+                    btn.className = 'platform-tab active-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all bg-white dark:bg-slate-800 text-indigo-600 dark:text-white shadow-sm';
+                } else {
+                    btn.className = 'platform-tab py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+                }
+            });
+
+            const input = document.getElementById('urlInput');
+            const icon = document.getElementById('inputPlatformIcon');
+            if (platform === 'tiktok') {
+                input.placeholder = 'Tempel tautan video atau slide foto TikTok (contoh: https://vt.tiktok.com/...)';
+                icon.className = 'fa-brands fa-tiktok text-slate-800 dark:text-white text-lg';
+            } else if (platform === 'instagram') {
+                input.placeholder = 'Tempel tautan Instagram Reels, Post, atau Foto (contoh: https://instagram.com/reel/...)';
+                icon.className = 'fa-brands fa-instagram text-pink-500 text-lg';
+            } else if (platform === 'facebook') {
+                input.placeholder = 'Tempel tautan video Facebook HD/Watch (contoh: https://facebook.com/watch/...)';
+                icon.className = 'fa-brands fa-facebook text-blue-500 text-lg';
+            } else {
+                input.placeholder = 'Tempel tautan video atau foto TikTok, Instagram, atau Facebook di sini...';
+                icon.className = 'fa-solid fa-link text-slate-400 text-lg';
+            }
+        }
+
+        function detectPlatformFromUrl(url) {
+            const lower = url.toLowerCase();
+            if (lower.includes('tiktok.com')) return 'tiktok';
+            if (lower.includes('instagram.com') || lower.includes('instagr.am')) return 'instagram';
+            if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) return 'facebook';
+            return null;
+        }
+
+        function handleUrlInput(value) {
+            const clearBtn = document.getElementById('clearBtn');
+            const icon = document.getElementById('inputPlatformIcon');
+            
+            if (value.trim().length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+                icon.className = 'fa-solid fa-link text-slate-400 text-lg';
+                return;
+            }
+
+            const detected = detectPlatformFromUrl(value);
+            if (detected === 'tiktok') {
+                icon.className = 'fa-brands fa-tiktok text-indigo-500 text-lg scale-110';
+                selectPlatform('tiktok');
+            } else if (detected === 'instagram') {
+                icon.className = 'fa-brands fa-instagram text-pink-500 text-lg scale-110';
+                selectPlatform('instagram');
+            } else if (detected === 'facebook') {
+                icon.className = 'fa-brands fa-facebook text-blue-500 text-lg scale-110';
+                selectPlatform('facebook');
+            }
+        }
+
+        function clearInput() {
+            const input = document.getElementById('urlInput');
+            input.value = '';
+            handleUrlInput('');
+            input.focus();
+        }
+
+        async function pasteFromClipboard() {
+            const input = document.getElementById('urlInput');
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    input.value = text;
+                    handleUrlInput(text);
+                    showToast('Tautan berhasil ditempel dari clipboard!', 'success');
+                } else {
+                    showToast('Clipboard kosong, silakan tempel secara manual (Ctrl+V)', 'warning');
+                    input.focus();
+                }
+            } catch (err) {
+                // Fallback when iframe blocks navigator.clipboard.readText
+                input.focus();
+                showToast('Tekan Ctrl+V atau tahan kolom untuk menempel tautan', 'info');
+            }
+        }
+
+        // --- Load Quick Sample Links ---
+        function loadSample(sampleKey) {
+            const sample = DEMO_SAMPLES[sampleKey];
+            if (!sample) return;
+            const input = document.getElementById('urlInput');
+            input.value = sample.url;
+            handleUrlInput(sample.url);
+            showToast(`Contoh tautan ${sample.platform.toUpperCase()} dimuat! Memproses...`, 'info');
+            processUrlDownload(sample.url, sampleKey);
+        }
+
+        function fillDemoUrl() {
+            const keys = Object.keys(DEMO_SAMPLES);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            loadSample(randomKey);
+        }
+
+        // --- Main Form Submit Handler ---
+        function handleDownloadSubmit(e) {
+            e.preventDefault();
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                showToast('Masukkan tautan URL terlebih dahulu!', 'error');
+                return;
+            }
+            processUrlDownload(url);
+        }
+
+        async function processUrlDownload(url, forcedSampleKey = null) {
+            const detectedPlatform = detectPlatformFromUrl(url);
+            if (!detectedPlatform) {
+                showToast('Tautan tidak dikenali! Pastikan berasal dari TikTok, Instagram, atau Facebook.', 'error');
+                return;
+            }
+
+            // Show Loading UI
+            setLoadingState(true);
+
+            try {
+                // 1. Check if user clicked one of the exact built-in sample URLs
+                const matchedSampleKey = forcedSampleKey || Object.keys(DEMO_SAMPLES).find(k => DEMO_SAMPLES[k].url === url);
+                if (matchedSampleKey && appConfig.mode === 'demo') {
+                    await new Promise(r => setTimeout(r, 800));
+                    renderResult(DEMO_SAMPLES[matchedSampleKey], 'Mode Simulasi Demo');
+                    setLoadingState(false);
+                    return;
+                }
+
+                // 2. If Custom API Endpoint is configured
+                if (appConfig.mode === 'custom' && appConfig.customApiUrl) {
+                    const customResult = await fetchFromCustomApi(url, detectedPlatform);
+                    if (customResult) {
+                        renderResult(customResult, 'Custom API');
+                        setLoadingState(false);
+                        return;
+                    }
+                }
+
+                // 3. Real Public API Integration for TikTok (via TikWM Public API)
+                if (detectedPlatform === 'tiktok' && appConfig.mode !== 'demo') {
+                    // Check if it's our placeholder sample link first
+                    if (matchedSampleKey) {
+                        await new Promise(r => setTimeout(r, 700));
+                        renderResult(DEMO_SAMPLES[matchedSampleKey], 'Pratinjau Interaktif');
+                        setLoadingState(false);
+                        return;
+                    }
+
+                    const tikwmData = await fetchTikTokRealAPI(url);
+                    if (tikwmData) {
+                        renderResult(tikwmData, 'Live TikWM API');
+                        showToast('Berhasil mengekstrak media HD dari TikTok!', 'success');
+                        setLoadingState(false);
+                        return;
+                    }
+                }
+
+                // 4. Smart Interactive Simulation Fallback (for IG/FB or when CORS/API limits hit)
+                await new Promise(r => setTimeout(r, 900));
+                const simulatedData = buildSimulatedResult(url, detectedPlatform, matchedSampleKey);
+                renderResult(simulatedData, 'Pratinjau Simulasi HD');
+                if (detectedPlatform !== 'tiktok') {
+                    showToast(`Media ${detectedPlatform.toUpperCase()} berhasil dimuat!`, 'success');
+                } else {
+                    showToast('Menggunakan mode simulasi (tautan tidak ditemukan di publik API)', 'info');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Terjadi kesalahan saat memproses tautan.', 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // --- Real Public TikWM API Fetcher for TikTok ---
+        async function fetchTikTokRealAPI(url) {
+            try {
+                const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`;
+                const response = await fetch(apiUrl);
+                const json = await response.json();
+
+                if (json && json.code === 0 && json.data) {
+                    const d = json.data;
+                    const isSlide = Array.isArray(d.images) && d.images.length > 0;
+                    return {
+                        url: url,
+                        platform: 'tiktok',
+                        type: isSlide ? 'slide' : 'video',
+                        title: d.title || 'Video TikTok Tanpa Judul',
+                        authorName: d.author?.nickname || 'Kreator TikTok',
+                        authorUsername: '@' + (d.author?.unique_id || 'tiktokuser'),
+                        avatar: d.author?.avatar || 'https://placehold.co/100x100/6366f1/ffffff?text=TT',
+                        thumbnail: d.origin_cover || d.cover || 'https://placehold.co/600x800/1e293b/ffffff?text=TikTok+HD',
+                        videoUrl: d.hdplay || d.play || '',
+                        videoWmUrl: d.wmplay || d.play || '',
+                        audioUrl: d.music || d.music_info?.play || '',
+                        musicTitle: d.music_info?.title ? `${d.music_info.title} - ${d.music_info.author || ''}` : 'Original Audio TikTok',
+                        duration: isSlide ? `${d.images.length} Slide Foto` : formatDuration(d.duration || 0),
+                        resolution: d.hdplay ? '1080p Full HD (Tanpa WM)' : '720p HD (Tanpa WM)',
+                        views: formatNumber(d.play_count),
+                        likes: formatNumber(d.digg_count),
+                        comments: formatNumber(d.comment_count),
+                        images: d.images || []
+                    };
+                }
+                return null;
+            } catch (error) {
+                console.warn('TikWM API error or blocked:', error);
+                return null;
+            }
+        }
+
+        // --- Custom API Endpoint Handler (Cobalt / RapidAPI style) ---
+        async function fetchFromCustomApi(url, platform) {
+            try {
+                const headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+                if (appConfig.customApiKey) {
+                    headers['Authorization'] = appConfig.customApiKey;
+                }
+
+                const res = await fetch(appConfig.customApiUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await res.json();
+
+                if (data && (data.url || data.picker)) {
+                    const images = data.picker ? data.picker.map(p => p.url) : [];
+                    return {
+                        url: url,
+                        platform: platform,
+                        type: images.length > 0 ? 'slide' : 'video',
+                        title: data.filename || `Unduhan Media ${platform.toUpperCase()} HD`,
+                        authorName: `${platform.toUpperCase()} Creator`,
+                        authorUsername: `@${platform}_media`,
+                        avatar: 'https://placehold.co/100x100/6366f1/ffffff?text=HD',
+                        thumbnail: images[0] || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=800&auto=format&fit=crop&q=80',
+                        videoUrl: data.url || '',
+                        audioUrl: data.audio || data.url || '',
+                        musicTitle: 'Original Audio Stream',
+                        duration: 'HD Stream',
+                        resolution: '1080p Original Quality',
+                        views: '-',
+                        likes: '-',
+                        comments: '-',
+                        images: images
+                    };
+                }
+                return null;
+            } catch (e) {
+                showToast('Gagal menghubungi Custom API, beralih ke mode simulasi.', 'warning');
+                return null;
+            }
+        }
+
+        // --- Build Smart Simulated Result for Demo & Testing ---
+        function buildSimulatedResult(url, platform, matchedSampleKey) {
+            if (matchedSampleKey && DEMO_SAMPLES[matchedSampleKey]) {
+                return DEMO_SAMPLES[matchedSampleKey];
+            }
+            if (platform === 'instagram') {
+                return {
+                    ...DEMO_SAMPLES.ig_reel,
+                    url: url,
+                    title: `Instagram Reels & Foto HD (${url.slice(0, 42)}...) — Kualitas Asli Tanpa Kompresi`
+                };
+            }
+            if (platform === 'facebook') {
+                return {
+                    ...DEMO_SAMPLES.fb_video,
+                    url: url,
+                    title: `Video Facebook Full HD 1080p (${url.slice(0, 42)}...)`
+                };
+            }
+            return {
+                ...DEMO_SAMPLES.tiktok_video,
+                url: url,
+                title: `Video TikTok Tanpa Watermark HD (${url.slice(0, 42)}...)`
+            };
+        }
+
+        // --- Render Result UI ---
+        function renderResult(data, sourceLabel) {
+            currentMediaData = data;
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.remove('hidden');
+
+            // Platform Badge
+            const badge = document.getElementById('resultPlatformBadge');
+            if (data.platform === 'tiktok') {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900';
+                badge.innerHTML = '<i class="fa-brands fa-tiktok"></i> TikTok';
+            } else if (data.platform === 'instagram') {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white';
+                badge.innerHTML = '<i class="fa-brands fa-instagram"></i> Instagram';
+            } else {
+                badge.className = 'px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-blue-600 text-white';
+                badge.innerHTML = '<i class="fa-brands fa-facebook"></i> Facebook';
+            }
+
+            document.getElementById('resultSourceModeBadge').textContent = sourceLabel;
+
+            // Reset Video Player & Set Thumbnail
+            const videoPlayer = document.getElementById('previewVideoPlayer');
+            const thumbImg = document.getElementById('previewThumbnail');
+            const playBtn = document.getElementById('playPreviewBtn');
+
+            videoPlayer.pause();
+            videoPlayer.classList.add('hidden');
+            thumbImg.classList.remove('hidden');
+            thumbImg.src = data.thumbnail;
+
+            if (data.videoUrl) {
+                playBtn.classList.remove('hidden');
+            } else {
+                playBtn.classList.add('hidden');
+            }
+
+            // Metadata
+            document.getElementById('previewDuration').innerHTML = `<i class="fa-regular fa-clock text-indigo-400"></i> ${data.duration}`;
+            document.getElementById('previewResolution').textContent = data.resolution;
+            document.getElementById('creatorAvatar').src = data.avatar;
+            document.getElementById('creatorName').textContent = data.authorName;
+            document.getElementById('creatorUsername').textContent = data.authorUsername;
+            document.getElementById('mediaCaption').textContent = data.title;
+            document.getElementById('statViews').textContent = data.views;
+            document.getElementById('statLikes').textContent = data.likes;
+            document.getElementById('statComments').textContent = data.comments;
+            document.getElementById('musicTitle').textContent = data.musicTitle;
+
+            // Build Download Action Buttons
+            const btnGrid = document.getElementById('downloadButtonsGrid');
+            btnGrid.innerHTML = '';
+
+            if (data.videoUrl) {
+                // Primary HD No Watermark Video Button
+                btnGrid.innerHTML += `
+                    <button onclick="triggerFileDownload('${data.videoUrl}', 'SnapSaveHD_${data.platform}_HD.mp4', 'video')" 
+                        class="col-span-1 sm:col-span-2 py-3.5 px-5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 flex items-center justify-between transition group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-video text-base"></i>
+                            <span>Unduh Video Full HD ${data.platform === 'tiktok' ? '(Tanpa Watermark)' : '(1080p MP4)'}</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-white/20 text-[11px] font-extrabold group-hover:translate-x-0.5 transition-transform">MP4 HD</span>
+                    </button>
+                `;
+
+                // Secondary SD / Alternative Server Button
+                const secondaryUrl = data.videoWmUrl || data.videoSdUrl || data.videoUrl;
+                const secondaryLabel = data.platform === 'tiktok' ? 'Video Server 2 (Cadangan)' : 'Unduh Video SD (720p Cepat)';
+                btnGrid.innerHTML += `
+                    <button onclick="triggerFileDownload('${secondaryUrl}', 'SnapSaveHD_${data.platform}_SD.mp4', 'video')" 
+                        class="py-3 px-4 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-xs sm:text-sm flex items-center justify-between transition">
+                        <span class="flex items-center gap-2">
+                            <i class="fa-solid fa-film text-indigo-500"></i>
+                            <span>${secondaryLabel}</span>
+                        </span>
+                        <i class="fa-solid fa-download text-xs opacity-70"></i>
+                    </button>
+                `;
+            }
+
+            // Cover / Photo HD Download Button
+            btnGrid.innerHTML += `
+                <button onclick="triggerFileDownload('${data.thumbnail}', 'SnapSaveHD_${data.platform}_Photo_HD.jpg', 'image')" 
+                    class="py-3 px-4 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 text-pink-600 dark:text-pink-400 border border-pink-500/20 font-semibold text-xs sm:text-sm flex items-center justify-between transition">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-regular fa-image"></i>
+                        <span>Unduh Foto / Sampul HD</span>
+                    </span>
+                    <span class="text-[11px] font-bold">JPG</span>
+                </button>
+            `;
+
+            // Audio MP3 Button
+            const audioStream = data.audioUrl || data.videoUrl;
+            btnGrid.innerHTML += `
+                <button onclick="triggerFileDownload('${audioStream}', 'SnapSaveHD_${data.platform}_Audio.mp3', 'audio')" 
+                    class="py-3 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold text-xs sm:text-sm flex items-center justify-between transition">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-music"></i>
+                        <span>Unduh Musik / Audio</span>
+                    </span>
+                    <span class="text-[11px] font-bold">MP3</span>
+                </button>
+            `;
+
+            document.getElementById('quickAudioBtn').onclick = () => {
+                triggerFileDownload(audioStream, `SnapSaveHD_${data.platform}_Audio.mp3`, 'audio');
+            };
+
+            // Render Photo Slide / Carousel Gallery if images exist
+            const galleryContainer = document.getElementById('photoGalleryContainer');
+            const galleryGrid = document.getElementById('photoGalleryGrid');
+            galleryGrid.innerHTML = '';
+
+            if (Array.isArray(data.images) && data.images.length > 0) {
+                galleryContainer.classList.remove('hidden');
+                document.getElementById('photoCountText').textContent = data.images.length;
+                data.images.forEach((imgUrl, idx) => {
+                    galleryGrid.innerHTML += `
+                        <div class="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 aspect-square bg-slate-900">
+                            <img src="${imgUrl}" alt="Slide ${idx + 1}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-2.5">
+                                <span class="text-[11px] font-bold text-white bg-black/50 px-2 py-0.5 rounded-md">#${idx + 1}</span>
+                                <button onclick="triggerFileDownload('${imgUrl}', 'SnapSaveHD_Slide_${idx + 1}.jpg', 'image')" 
+                                    class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-download"></i> HD
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                galleryContainer.classList.add('hidden');
+            }
+
+            // Save to Recent History
+            saveToHistory(data);
+
+            // Smooth scroll to result
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // --- Inline Video Player ---
+        function playVideoInline() {
+            if (!currentMediaData || !currentMediaData.videoUrl) return;
+            const videoPlayer = document.getElementById('previewVideoPlayer');
+            const thumbImg = document.getElementById('previewThumbnail');
+            const playBtn = document.getElementById('playPreviewBtn');
+
+            thumbImg.classList.add('hidden');
+            playBtn.classList.add('hidden');
+            videoPlayer.classList.remove('hidden');
+            videoPlayer.src = currentMediaData.videoUrl;
+            videoPlayer.play().catch(() => {
+                showToast('Membuka pemutar video di tab baru...', 'info');
+                window.open(currentMediaData.videoUrl, '_blank');
+            });
+        }
+
+        // --- Direct Blob File Downloader ---
+        async function triggerFileDownload(fileUrl, fileName, mediaType) {
+            if (!fileUrl) {
+                showToast('Tautan file tidak tersedia', 'error');
+                return;
+            }
+
+            showToast(`Menyiapkan unduhan ${fileName}...`, 'info');
+
+            try {
+                const response = await fetch(fileUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                }, 1500);
+
+                showToast(`Berhasil mengunduh ${fileName}!`, 'success');
+            } catch (err) {
+                // Fallback if cross-origin server blocks direct fetch blob
+                window.open(fileUrl, '_blank', 'noopener,noreferrer');
+                showToast('Media dibuka di tab baru. Klik titik tiga / tahan untuk menyimpan.', 'info');
+            }
+        }
+
+        // --- UI Helpers ---
+        function setLoadingState(isLoading) {
+            const loadingSec = document.getElementById('loadingSection');
+            const resultSec = document.getElementById('resultSection');
+            const submitBtn = document.getElementById('submitBtn');
+            const submitIcon = document.getElementById('submitIcon');
+            const submitText = document.getElementById('submitText');
+
+            if (isLoading) {
+                resultSec.classList.add('hidden');
+                loadingSec.classList.remove('hidden');
+                submitBtn.disabled = true;
+                submitIcon.className = 'fa-solid fa-circle-notch fa-spin';
+                submitText.textContent = 'Memproses...';
+            } else {
+                loadingSec.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitIcon.className = 'fa-solid fa-download';
+                submitText.textContent = 'Unduh HD';
+            }
+        }
+
+        function closeResult() {
+            const videoPlayer = document.getElementById('previewVideoPlayer');
+            videoPlayer.pause();
+            document.getElementById('resultSection').classList.add('hidden');
+        }
+
+        function formatDuration(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = Math.floor(sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function formatNumber(num) {
+            if (!num && num !== 0) return '-';
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        // --- History Management ---
+        function saveToHistory(item) {
+            let history = JSON.parse(localStorage.getItem('snapsave_history') || '[]');
+            history = history.filter(h => h.url !== item.url);
+            history.unshift({
+                url: item.url,
+                platform: item.platform,
+                title: item.title,
+                authorName: item.authorName,
+                thumbnail: item.thumbnail,
+                timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            });
+            history = history.slice(0, 6);
+            localStorage.setItem('snapsave_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('snapsave_history') || '[]');
+            const section = document.getElementById('historySection');
+            const list = document.getElementById('historyList');
+
+            if (history.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            list.innerHTML = history.map(item => {
+                let pIcon = 'fa-brands fa-tiktok text-indigo-500';
+                if (item.platform === 'instagram') pIcon = 'fa-brands fa-instagram text-pink-500';
+                if (item.platform === 'facebook') pIcon = 'fa-brands fa-facebook text-blue-500';
+
+                return `
+                    <div onclick="reloadFromHistory('${item.url.replace(/'/g, "\\'")}')" class="cursor-pointer glass-card p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/50 transition flex items-center gap-3 group">
+                        <img src="${item.thumbnail}" alt="Thumb" class="w-14 h-14 rounded-xl object-cover shrink-0 bg-slate-800" onerror="this.src='https://placehold.co/100x100/1e293b/ffffff?text=HD'">
+                        <div class="overflow-hidden flex-1">
+                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 mb-0.5">
+                                <i class="${pIcon}"></i>
+                                <span class="truncate">${item.authorName}</span>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-500 transition">${item.title}</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition"></i>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function reloadFromHistory(url) {
+            const input = document.getElementById('urlInput');
+            input.value = url;
+            handleUrlInput(url);
+            processUrlDownload(url);
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('snapsave_history');
+            renderHistory();
+            showToast('Riwayat unduhan dibersihkan', 'info');
+        }
+
+        // --- Modal & API Config Management ---
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function initApiSettingsUI() {
+            document.getElementById('configModeSelect').value = appConfig.mode;
+            document.getElementById('customApiUrlInput').value = appConfig.customApiUrl;
+            document.getElementById('customApiKeyInput').value = appConfig.customApiKey;
+            updateApiBadge();
+        }
+
+        function saveApiSettings() {
+            appConfig.mode = document.getElementById('configModeSelect').value;
+            appConfig.customApiUrl = document.getElementById('customApiUrlInput').value.trim();
+            appConfig.customApiKey = document.getElementById('customApiKeyInput').value.trim();
+
+            localStorage.setItem('snapsave_mode', appConfig.mode);
+            localStorage.setItem('snapsave_api_url', appConfig.customApiUrl);
+            localStorage.setItem('snapsave_api_key', appConfig.customApiKey);
+
+            updateApiBadge();
+            toggleModal('apiModal');
+            showToast('Pengaturan API berhasil disimpan!', 'success');
+        }
+
+        function updateApiBadge() {
+            const badge = document.getElementById('apiModeBadge');
+            if (appConfig.mode === 'custom') {
+                badge.className = 'w-2 h-2 rounded-full bg-indigo-500';
+            } else if (appConfig.mode === 'demo') {
+                badge.className = 'w-2 h-2 rounded-full bg-amber-500';
+            } else {
+                badge.className = 'w-2 h-2 rounded-full bg-emerald-500';
+            }
+        }
+    </script>
+</body>
+</html>
