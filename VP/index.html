@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NusaPlay — Pemutar Video Ultra-Ringan (MP4, MKV, MOV)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar Ringan */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        /* =========================================================
+           OPTIMASI HARDWARE ACCELERATION & ZERO COMPOSITE OVERHEAD
+           Menghindari backdrop-filter: blur() & box-shadow berat di atas
+           permukaan video agar GPU tidak melakukan software readback
+           saat memutar video 1080p / 4K 60fps.
+           ========================================================= */
+        #playerContainer {
+            contain: layout paint style;
+            background-color: #000000;
+            transform: translateZ(0);
+        }
+
+        #mainVideo {
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            will-change: transform;
+            pointer-events: auto;
+        }
+
+        /* GPU-Accelerated Progress Bar menggunakan scaleX (Zero Layout Reflow) */
+        .gpu-bar {
+            transform-origin: left center;
+            transform: scaleX(0);
+            will-change: transform;
+        }
+
+        /* Custom Range Slider tanpa Box-Shadow berat */
+        input[type="range"].custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"].custom-slider::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+        }
+        input[type="range"].custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 13px;
+            width: 13px;
+            border-radius: 50%;
+            background: #38bdf8;
+            margin-top: -3.5px;
+        }
+        input[type="range"].custom-slider:hover::-webkit-slider-thumb {
+            background: #ffffff;
+        }
+
+        /* Subtitle Ringan & Tajam */
+        video::cue {
+            background-color: rgba(10, 12, 18, 0.9);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.05rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        /* Saat idle / kontrol tersembunyi, matikan semua layer komposit UI */
+        .player-idle {
+            cursor: none;
+        }
+        .player-idle .controls-overlay {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        /* Mode Performa Tinggi (Zero-Lag): Matikan semua transisi CSS yang tidak perlu */
+        body.zero-lag-mode * {
+            transition-duration: 0ms !important;
+            animation-duration: 0ms !important;
+        }
+    </style>
+</head>
+<body class="zero-lag-mode bg-[#070a12] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-sky-500 selection:text-white overflow-x-hidden">
+
+    <!-- Top Navigation Bar (Solid Background, Tanpa Blur) -->
+    <header class="border-b border-slate-800 bg-[#0b101b] sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center text-slate-950">
+                    <i class="ph-fill ph-play-circle text-2xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">NusaPlay <span class="text-sky-400 font-mono text-xs font-semibold">TURBO</span></h1>
+                        <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            720p • 1080p • 4K READY
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <!-- Instant Stream Timer Badge -->
+                <div id="loadSpeedBadge" class="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-500/10 border border-sky-500/30 text-[11px] font-mono text-sky-300" title="Kecepatan Pembacaan Stream Lokal">
+                    <i class="ph-fill ph-timer text-sky-400"></i>
+                    <span id="loadSpeedText">Stream Siap: 0ms</span>
+                </div>
+
+                <!-- Toggle Mode Performa Tinggi (Zero-Lag) -->
+                <button id="btnZeroLagToggle" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold" title="Aktifkan/Nonaktifkan Mode Zero-Lag untuk Video Resolusi Tinggi">
+                    <i class="ph-fill ph-lightning text-sm text-emerald-400"></i>
+                    <span id="zeroLagText" class="hidden md:inline">Zero-Lag: AKTIF</span>
+                </button>
+
+                <!-- Fast Mobile File Picker (Bypass Gallery & iOS Transcoder) -->
+                <button id="btnFastMobilePicker" type="button" class="cursor-pointer inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm" title="Mode Cepat HP: Langsung buka File Manager tanpa loading lama di Galeri/iOS">
+                    <i class="ph-bold ph-device-mobile-camera text-base"></i>
+                    <span>Mode Cepat HP</span>
+                </button>
+                <!-- Specialized input omitting video/* MIME so Android/iOS goes straight to native Document/File Manager without Gallery copy/transcoding -->
+                <input id="fastMobileInput" type="file" accept=".mp4,.mkv,.mov,.webm,.m4v,.srt,.vtt,application/octet-stream" multiple class="hidden">
+
+                <!-- Standard Video Picker Button -->
+                <label for="fileInput" class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs sm:text-sm" title="Pemilih File Standar (Laptop / Galeri)">
+                    <i class="ph-bold ph-folder-open text-base text-sky-400"></i>
+                    <span class="hidden sm:inline">Pilih Standar</span>
+                </label>
+                <input id="fileInput" type="file" accept=".mp4,.mkv,.mov,.webm,video/mp4,video/x-matroska,video/quicktime,video/webm" multiple class="hidden">
+
+                <!-- Add Subtitle Button -->
+                <label for="subtitleInput" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs sm:text-sm border border-slate-700" title="Muat Subtitle (.vtt atau .srt)">
+                    <i class="ph-bold ph-closed-captioning text-base text-sky-400"></i>
+                    <span class="hidden lg:inline">Subtitle</span>
+                </label>
+                <input id="subtitleInput" type="file" accept=".vtt,.srt" class="hidden">
+
+                <!-- Toggle Sidebar Playlist -->
+                <button id="btnToggleSidebar" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm border border-slate-700" title="Sembunyikan/Tampilkan Panel Playlist (Hemat Resource)">
+                    <i class="ph-bold ph-sidebar-simple text-base text-sky-400"></i>
+                    <span class="hidden xl:inline">Panel</span>
+                </button>
+
+                <!-- Compatibility Guide Modal Button -->
+                <button id="btnCodecInfo" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm border border-slate-700" title="Info Dukungan Format & Tips Cepat HP">
+                    <i class="ph-bold ph-info text-base text-amber-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Smart Mobile Fast-Load Guide Banner -->
+    <div id="mobileFastBanner" class="bg-emerald-950/60 border-b border-emerald-500/30 px-4 py-2">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 text-emerald-200">
+                <span class="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] uppercase shrink-0" id="detectedOsBadge">TIPS HP</span>
+                <p class="leading-snug">
+                    Agar buka video bergiga-giga di HP <strong>instan tanpa loading lama</strong>, gunakan tombol hijau <strong>"Mode Cepat HP"</strong> (otomatis melewati kompresi/salin cache Galeri &amp; membuka File Manager langsung).
+                </p>
+            </div>
+            <div class="flex items-center gap-2 ml-auto">
+                <button id="btnOpenMobileTips" class="underline text-emerald-300 hover:text-white font-semibold text-[11px]">Cara Kerja</button>
+                <button id="btnCloseMobileBanner" class="text-slate-400 hover:text-white p-0.5" title="Tutup Tips">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- Left Column: Video Player & Metadata -->
+        <div id="playerColumn" class="lg:col-span-8 flex flex-col gap-4">
+            
+            <!-- Video Container Wrapper (Dedicated Composite Layer, Zero Blur) -->
+            <div id="playerContainer" class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 select-none flex items-center justify-center">
+                
+                <!-- HTML5 Video Element (Hardware Accelerated) -->
+                <video id="mainVideo" class="w-full h-full object-contain bg-black" preload="metadata" playsinline>
+                    <track id="subtitleTrack" kind="subtitles" srclang="id" label="Bahasa Indonesia" default>
+                    Browser Anda tidak mendukung elemen video HTML5.
+                </video>
+
+                <!-- Drag & Drop Overlay (Solid Opaque Background - No Blur) -->
+                <div id="dropZoneOverlay" class="hidden absolute inset-0 bg-[#070a12]/95 z-40 flex-col items-center justify-center border-2 border-dashed border-sky-400 rounded-xl m-2 pointer-events-none">
+                    <div class="w-16 h-16 rounded-full bg-sky-500/20 flex items-center justify-center mb-3">
+                        <i class="ph-fill ph-file-video text-4xl text-sky-400"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Lepaskan File Video di Sini</h3>
+                    <p class="text-xs text-slate-400 mt-1">Pemutaran Akselerasi Hardware langsung (.MP4, .MKV, .MOV, .SRT)</p>
+                </div>
+
+                <!-- Empty State / Welcome Overlay (Solid Background) -->
+                <div id="emptyStateOverlay" class="absolute inset-0 bg-[#090d16] flex flex-col items-center justify-center p-6 text-center z-20">
+                    <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-3">
+                        <i class="ph-duotone ph-film-strip text-4xl text-sky-400"></i>
+                    </div>
+                    <h2 class="text-base sm:text-lg font-bold text-white max-w-md">Pemutar Video Resolusi Tinggi (720p / 1080p / 4K)</h2>
+                    <p class="text-xs text-slate-400 max-w-md mt-1 leading-relaxed">
+                        Dioptimalkan dengan <strong>Hardware GPU Decoding</strong> &amp; <strong>Bypass Galeri HP</strong> agar pemutaran file besar (<span class="text-sky-400 font-mono">.mp4</span>, <span class="text-purple-400 font-mono">.mkv</span>, <span class="text-amber-400 font-mono">.mov</span>) terbuka instan tanpa loading lama.
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                        <button id="btnEmptyFastMobile" type="button" class="cursor-pointer px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm">
+                            <i class="ph-bold ph-lightning"></i>
+                            Mode Cepat HP (Bypass Galeri)
+                        </button>
+                        <label for="fileInput" class="cursor-pointer px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm flex items-center gap-2">
+                            <i class="ph-bold ph-folder-open"></i>
+                            Pilih File Standar
+                        </label>
+                        <button id="btnLoadDemo" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs sm:text-sm border border-slate-700 flex items-center gap-2">
+                            <i class="ph-fill ph-play text-sky-400"></i>
+                            Putar Video Sampel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error / Codec Warning Overlay (Solid Background) -->
+                <div id="errorOverlay" class="hidden absolute inset-0 bg-[#080b12] flex-col items-center justify-center p-6 text-center z-30">
+                    <div class="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center mb-2.5">
+                        <i class="ph-fill ph-warning-octagon text-3xl text-rose-400"></i>
+                    </div>
+                    <span id="errorFormatBadge" class="px-2.5 py-0.5 rounded text-xs font-mono font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 mb-1.5">
+                        CODEC ERROR
+                    </span>
+                    <h3 id="errorTitle" class="text-base sm:text-lg font-bold text-white max-w-lg">Video Tidak Dapat Diputar</h3>
+                    <p id="errorMessage" class="text-xs text-slate-300 max-w-lg mt-1.5 leading-relaxed">
+                        Format atau codec video ini tidak didukung oleh dekoder hardware browser Anda.
+                    </p>
+                    <div class="mt-3 p-3 rounded-xl bg-slate-900 border border-slate-800 max-w-lg text-left text-xs text-slate-400 space-y-1">
+                        <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+                            <i class="ph-fill ph-lightbulb text-amber-400"></i> Solusi Cepat File MKV / MOV 1080p+:
+                        </div>
+                        <p>Pastikan browser Anda mengaktifkan fitur <strong>"Use graphics acceleration when available"</strong> di pengaturan browser, dan video menggunakan codec standar <code>H.264 / VP9 / AV1</code>.</p>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2.5 justify-center">
+                        <button id="btnRetryForcePlay" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700">
+                            Coba Muat Ulang
+                        </button>
+                        <label for="fileInput" class="cursor-pointer px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-semibold">
+                            Pilih File Lain
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Center Play/Pause Feedback (Lightweight Solid Circle, No Blur) -->
+                <div id="centerStatusIcon" class="hidden pointer-events-none absolute z-20 w-16 h-16 rounded-full bg-[#090d16]/90 border border-slate-700 items-center justify-center text-white">
+                    <i id="centerIconInner" class="ph-fill ph-play text-3xl"></i>
+                </div>
+
+                <!-- Loading Spinner (Lightweight) -->
+                <div id="loadingSpinner" class="hidden pointer-events-none absolute z-20 w-12 h-12 rounded-full bg-[#090d16]/90 border border-slate-800 items-center justify-center">
+                    <i class="ph-bold ph-spinner animate-spin text-2xl text-sky-400"></i>
+                </div>
+
+                <!-- Real-Time Hardware Stats Overlay (Optional Toggle) -->
+                <div id="hwStatsOverlay" class="hidden absolute top-14 left-4 z-20 bg-[#090d16]/92 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-slate-300 pointer-events-none space-y-1">
+                    <div class="text-sky-400 font-semibold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        GPU HARDWARE DECODER
+                    </div>
+                    <div>Resolusi : <span id="statRes" class="text-white">-</span></div>
+                    <div>Frame Total : <span id="statDecoded" class="text-emerald-400">0</span></div>
+                    <div>Frame Drop : <span id="statDropped" class="text-amber-400">0 (0%)</span></div>
+                    <div>Mode UI : <span class="text-sky-300">Zero-Reflow</span></div>
+                </div>
+
+                <!-- Top Bar inside Video (Solid Semi-Transparent Bar, No Gradient/Blur Repaint) -->
+                <div id="topOverlay" class="controls-overlay absolute top-0 inset-x-0 px-4 py-2.5 bg-[#070a12]/90 border-b border-slate-800/60 flex items-center justify-between gap-4 z-20 pointer-events-none">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span id="activeFormatBadge" class="px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase bg-sky-500 text-slate-950">
+                            MP4
+                        </span>
+                        <h3 id="activeVideoTitle" class="text-xs sm:text-sm font-semibold text-white truncate">
+                            Belum ada video dipilih
+                        </h3>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span id="qualityTierBadge" class="hidden px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            1080p FHD
+                        </span>
+                        <div id="activeResolutionBadge" class="hidden sm:flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-300">
+                            <span id="resText">-- × --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Custom Controls Overlay (Solid Dark RGBA - Zero Blur Overhead) -->
+                <div id="controlsOverlay" class="controls-overlay absolute bottom-0 inset-x-0 bg-[#070a12]/92 border-t border-slate-800/70 pt-3 pb-2.5 px-4 z-20 flex flex-col gap-2">
+                    
+                    <!-- Zero-Reflow GPU Progress Bar Container -->
+                    <div class="relative flex items-center h-4 group/progress cursor-pointer">
+                        <!-- Hover Timestamp Tooltip -->
+                        <div id="progressTooltip" class="hidden group-hover/progress:block absolute -top-7 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[11px] border border-slate-700 pointer-events-none">
+                            00:00
+                        </div>
+
+                        <!-- Track Background using GPU scaleX transforms instead of layout width% -->
+                        <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden relative pointer-events-none">
+                            <div id="bufferedBar" class="gpu-bar h-full w-full bg-slate-600 absolute top-0 left-0"></div>
+                            <div id="playedBar" class="gpu-bar h-full w-full bg-sky-400 absolute top-0 left-0"></div>
+                        </div>
+
+                        <!-- Interactive Range Input -->
+                        <input id="progressSlider" type="range" min="0" max="1000" value="0" step="1" class="custom-slider absolute inset-0 w-full h-full opacity-0 group-hover/progress:opacity-100">
+                    </div>
+
+                    <!-- Controls Row -->
+                    <div class="flex items-center justify-between gap-2">
+                        
+                        <!-- Left Controls -->
+                        <div class="flex items-center gap-1 sm:gap-1.5">
+                            <!-- Play / Pause -->
+                            <button id="btnPlayPause" class="p-1.5 rounded-lg hover:bg-slate-800 text-white" title="Putar / Jeda (Spasi)">
+                                <i id="iconPlayPause" class="ph-fill ph-play text-xl"></i>
+                            </button>
+
+                            <!-- Previous / Next in Playlist -->
+                            <button id="btnPrev" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Video Sebelumnya">
+                                <i class="ph-fill ph-skip-back text-base"></i>
+                            </button>
+                            <button id="btnNext" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Video Berikutnya">
+                                <i class="ph-fill ph-skip-forward text-base"></i>
+                            </button>
+
+                            <!-- Rewind / Forward 10s -->
+                            <button id="btnRewind" class="hidden sm:inline-flex p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Mundur 10 Detik (Panah Kiri)">
+                                <i class="ph-bold ph-arrow-counter-clockwise text-base"></i>
+                            </button>
+                            <button id="btnForward" class="hidden sm:inline-flex p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Maju 10 Detik (Panah Kanan)">
+                                <i class="ph-bold ph-arrow-clockwise text-base"></i>
+                            </button>
+
+                            <!-- Volume Controls -->
+                            <div class="flex items-center gap-1">
+                                <button id="btnMute" class="p-1.5 rounded-lg hover:bg-slate-800 text-white" title="Bisu / Suara (M)">
+                                    <i id="iconVolume" class="ph-fill ph-speaker-high text-lg"></i>
+                                </button>
+                                <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="1" class="custom-slider w-14 sm:w-20 bg-slate-700 rounded-full h-1.5">
+                            </div>
+
+                            <!-- Time Display (Throttled to 1Hz update only when visible) -->
+                            <div class="text-xs font-mono text-slate-300 ml-1.5 select-text">
+                                <span id="currentTimeText" class="text-white font-medium">00:00</span>
+                                <span class="text-slate-500 mx-0.5">/</span>
+                                <span id="durationText">00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Right Controls -->
+                        <div class="flex items-center gap-1">
+                            <!-- Playback Speed Selector -->
+                            <select id="speedSelect" class="bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-mono font-semibold px-2 py-1 rounded-lg border border-slate-700 cursor-pointer focus:outline-none" title="Kecepatan Pemutaran">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1.0x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2">2.0x</option>
+                            </select>
+
+                            <!-- FPS / Frame Drop Monitor Button -->
+                            <button id="btnStatsToggle" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white" title="Monitor Frame & Performa Resolusi Tinggi">
+                                <i class="ph-bold ph-gauge text-base"></i>
+                            </button>
+
+                            <!-- Loop Toggle -->
+                            <button id="btnLoop" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white" title="Ulangi Video (Loop)">
+                                <i class="ph-bold ph-repeat text-base"></i>
+                            </button>
+
+                            <!-- Screenshot Button -->
+                            <button id="btnScreenshot" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Ambil Tangkapan Layar">
+                                <i class="ph-bold ph-camera text-base"></i>
+                            </button>
+
+                            <!-- Picture-in-Picture -->
+                            <button id="btnPiP" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Picture-in-Picture (PiP)">
+                                <i class="ph-bold ph-picture-in-picture text-base"></i>
+                            </button>
+
+                            <!-- Theater Mode -->
+                            <button id="btnTheater" class="hidden lg:inline-flex p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white" title="Mode Teater / Layar Lebar (T)">
+                                <i class="ph-bold ph-rectangle text-base"></i>
+                            </button>
+
+                            <!-- Fullscreen -->
+                            <button id="btnFullscreen" class="p-1.5 rounded-lg hover:bg-slate-800 text-white" title="Layar Penuh (F)">
+                                <i id="iconFullscreen" class="ph-bold ph-corners-out text-lg"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Banner for Audio-less MKV / MOV -->
+            <div id="codecHintBanner" class="hidden rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-start justify-between gap-3">
+                <div class="flex items-start gap-2.5">
+                    <i class="ph-fill ph-info text-amber-400 text-lg mt-0.5 shrink-0"></i>
+                    <div class="text-xs text-slate-300">
+                        <span class="font-semibold text-amber-300">Info Kontainer <span id="hintExtName">MKV/MOV</span>:</span>
+                        Jika gambar 720p/1080p tampil mulus namun suara tidak keluar, file tersebut mungkin menggunakan audio <code>AC3/DTS</code>. Gunakan file dengan audio <code>AAC/MP3/Opus</code>.
+                    </div>
+                </div>
+                <button id="btnCloseHint" class="text-slate-400 hover:text-white p-1">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+
+            <!-- Video Metadata & Performance Inspector Card -->
+            <div class="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span id="metaFormatPill" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                                READY
+                            </span>
+                            <h2 id="metaTitle" class="text-sm sm:text-base font-bold text-white truncate">
+                                Pilih atau Tarik File Video untuk Memulai
+                            </h2>
+                        </div>
+                        <p id="metaSourceType" class="text-xs text-slate-400 mt-0.5">
+                            Mesin Pemutar Langsung (Zero-Copy Local Blob Streaming) — Ringan untuk 720p, 1080p, dan 4K.
+                        </p>
+                    </div>
+
+                    <!-- Aspect Ratio & Fast Seek Info -->
+                    <div class="flex items-center gap-2">
+                        <span id="metaLoadLatency" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono text-xs">
+                            <i class="ph-fill ph-check-circle text-emerald-400"></i>
+                            <span id="metaLoadLatencyText">Zero-Copy: 1ms</span>
+                        </span>
+                        <button id="btnFitToggle" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 flex items-center gap-1.5" title="Ubah Rasio Tampilan Video">
+                            <i class="ph-bold ph-frame-corners text-sky-400"></i>
+                            <span id="fitModeText">Rasio: Proporsional</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Technical Specs Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3">
+                    <div class="p-2.5 rounded-lg bg-[#070a12] border border-slate-800/80">
+                        <div class="text-[10px] text-slate-400 uppercase font-medium flex items-center gap-1">
+                            <i class="ph-fill ph-file-video text-sky-400"></i> Kontainer
+                        </div>
+                        <div id="specContainer" class="text-xs sm:text-sm font-mono font-semibold text-white mt-0.5 truncate">-</div>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-[#070a12] border border-slate-800/80">
+                        <div class="text-[10px] text-slate-400 uppercase font-medium flex items-center gap-1">
+                            <i class="ph-fill ph-monitor text-purple-400"></i> Resolusi &amp; Kualitas
+                        </div>
+                        <div id="specResolution" class="text-xs sm:text-sm font-mono font-semibold text-white mt-0.5 truncate">-</div>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-[#070a12] border border-slate-800/80">
+                        <div class="text-[10px] text-slate-400 uppercase font-medium flex items-center gap-1">
+                            <i class="ph-fill ph-hard-drive text-emerald-400"></i> Ukuran File
+                        </div>
+                        <div id="specSize" class="text-xs sm:text-sm font-mono font-semibold text-white mt-0.5 truncate">-</div>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-[#070a12] border border-slate-800/80">
+                        <div class="text-[10px] text-slate-400 uppercase font-medium flex items-center gap-1">
+                            <i class="ph-fill ph-gauge text-amber-400"></i> Status Frame GPU
+                        </div>
+                        <div id="specFrameHealth" class="text-xs sm:text-sm font-mono font-semibold text-emerald-400 mt-0.5 truncate">Optimal (0 Drop)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: URL Loader & Playlist -->
+        <div id="sidebarColumn" class="lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- Direct URL Input Card -->
+            <div class="bg-[#0b101b] border border-slate-800 rounded-xl p-4">
+                <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-2 mb-2.5">
+                    <i class="ph-fill ph-link text-sky-400 text-base"></i>
+                    Putar dari URL Video Langsung
+                </h3>
+                <form id="urlForm" class="flex gap-2">
+                    <input id="urlInput" type="url" placeholder="https://.../video.mp4, .mkv, .mov" required
+                        class="flex-1 bg-[#070a12] border border-slate-800 focus:border-sky-400 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs shrink-0 flex items-center gap-1">
+                        <i class="ph-bold ph-play"></i>
+                        Muat
+                    </button>
+                </form>
+            </div>
+
+            <!-- Playlist Card -->
+            <div class="bg-[#0b101b] border border-slate-800 rounded-xl p-4 flex flex-col flex-1 min-h-[380px]">
+                <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-800">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="ph-fill ph-playlist text-sky-400 text-base"></i>
+                            Daftar Putar Video
+                        </h3>
+                        <p id="playlistCountText" class="text-[11px] text-slate-400">0 video dalam antrean</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label for="fileInput" class="cursor-pointer p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs border border-slate-700" title="Tambah File ke Daftar Putar">
+                            <i class="ph-bold ph-plus text-sm"></i>
+                        </label>
+                        <button id="btnClearPlaylist" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs border border-slate-700" title="Bersihkan Daftar Putar & Bebaskan RAM">
+                            <i class="ph-bold ph-trash text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Badges -->
+                <div class="flex items-center gap-1.5 mb-2.5 overflow-x-auto pb-1">
+                    <button data-filter="ALL" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-500 text-slate-950">
+                        Semua
+                    </button>
+                    <button data-filter="MP4" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        .MP4
+                    </button>
+                    <button data-filter="MKV" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        .MKV
+                    </button>
+                    <button data-filter="MOV" class="filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        .MOV
+                    </button>
+                </div>
+
+                <!-- Playlist Items List -->
+                <div id="playlistContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[360px]">
+                    <!-- Populated via JS -->
+                </div>
+
+                <!-- Dropzone Footer inside Playlist -->
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <button id="btnPlaylistFastMobile" type="button" class="cursor-pointer border border-dashed border-emerald-500/50 hover:border-emerald-400 bg-emerald-950/20 rounded-lg p-2.5 text-center">
+                        <div class="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-300 hover:text-emerald-200">
+                            <i class="ph-bold ph-device-mobile-camera text-sm"></i>
+                            <span>+ Mode Cepat HP</span>
+                        </div>
+                    </button>
+                    <label for="fileInput" class="cursor-pointer border border-dashed border-slate-700 hover:border-sky-400 bg-[#070a12] rounded-lg p-2.5 text-center">
+                        <div class="flex items-center justify-center gap-1.5 text-xs font-medium text-slate-300 hover:text-sky-400">
+                            <i class="ph-bold ph-upload-simple text-sm"></i>
+                            <span>+ Pilih Standar</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Codec & Performance Optimization Modal -->
+    <div id="infoModal" class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
+        <div class="bg-[#0b101b] border border-slate-800 rounded-2xl max-w-2xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-lightning text-xl text-emerald-400"></i>
+                    <h3 class="text-base sm:text-lg font-bold text-white">Optimasi Performa Tinggi &amp; Mode Cepat HP</h3>
+                </div>
+                <button id="btnCloseModal" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Fast Picker Explanation -->
+            <div class="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-xs text-slate-200 space-y-1.5">
+                <div class="font-bold text-sky-300 flex items-center gap-1.5">
+                    <i class="ph-fill ph-device-mobile-camera text-base"></i> Mengapa Tombol "Mode Cepat HP" Bisa Instan di Android &amp; iPhone?
+                </div>
+                <ul class="list-disc list-inside text-slate-300 space-y-1">
+                    <li><strong>Melewati Penyalinan Cache Galeri Android:</strong> Memakai filter dokumen biner khusus (tanpa <code>video/*</code>) sehingga Android langsung membuka <em>Sistem File / Dokumen</em> dan memberikan pointer memori langsung (Zero-Copy) tanpa menyalin video bergiga-giga ke folder sementara.</li>
+                    <li><strong>Mencegah Auto-Transcoding iOS (iPhone/iPad):</strong> Menghentikan Safari/iOS mengonversi ulang video <code>.MOV</code> (HEVC 1080p/4K) menjadi H.264 sebelum diputar.</li>
+                    <li><strong>Tips Tambahan:</strong> Di menu File HP yang terbuka, pilih dari folder <strong>Penyimpanan Internal / Download / DCIM</strong> (hindari memilih lewat pintasan aplikasi Galeri/Google Photos).</li>
+                </ul>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-slate-200 space-y-1.5">
+                <div class="font-bold text-emerald-300 flex items-center gap-1.5">
+                    <i class="ph-fill ph-check-circle text-base"></i> Mengapa Pemutaran 720p / 1080p / 4K Bebas Lag?
+                </div>
+                <ul class="list-disc list-inside text-slate-300 space-y-1">
+                    <li><strong>Zero Blur Compositing:</strong> Semua efek <code>backdrop-filter: blur</code> di atas kanvas video telah dihapus agar GPU tidak terbebani melakukan penyalinan ulang piksel pada resolusi 1080p/4K.</li>
+                    <li><strong>Zero-Reflow Progress Bar:</strong> Menggunakan akselerasi GPU <code>transform: scaleX()</code> dan menghentikan mutasi DOM otomatis saat kontrol disembunyikan.</li>
+                    <li><strong>Fast-Seek Engine:</strong> Saat menggeser timeline video ber-bitrate tinggi, pemutar membatasi (*throttle*) frekuensi dekode agar tidak macet.</li>
+                </ul>
+            </div>
+
+            <!-- Live Browser Codec Check -->
+            <div class="space-y-2">
+                <div class="text-xs font-semibold text-sky-400 uppercase tracking-wider">Dukungan Hardware Codec Browser Anda:</div>
+                <div id="codecCheckGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div class="space-y-2">
+                <h4 class="text-xs font-semibold text-sky-400 uppercase tracking-wider">Pintasan Keyboard</h4>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Putar / Jeda</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">Spasi / K</kbd>
+                    </div>
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Layar Penuh</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">F</kbd>
+                    </div>
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Bisu (Mute)</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">M</kbd>
+                    </div>
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Mundur / Maju</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">← / →</kbd>
+                    </div>
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Volume +/-</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">↑ / ↓</kbd>
+                    </div>
+                    <div class="p-2 rounded-lg bg-[#070a12] border border-slate-800 flex items-center justify-between">
+                        <span class="text-slate-300">Mode Teater</span>
+                        <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-400 font-mono">T</kbd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightweight Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-1.5 pointer-events-none"></div>
+
+    <!-- Application JavaScript -->
+    <script>
+        // ==========================================
+        // STATE & CONFIGURATION (ULTRA-LIGHT ENGINE)
+        // ==========================================
+        const state = {
+            playlist: [
+                {
+                    id: 'sample-mp4',
+                    name: 'Big Buck Bunny (Sampel .MP4 HD)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                    format: 'MP4',
+                    size: '158 MB (Stream)',
+                    isLocal: false
+                },
+                {
+                    id: 'sample-mkv',
+                    name: 'Sintel Trailer (Simulasi Kontainer .MKV)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+                    format: 'MKV',
+                    size: '129 MB (Stream)',
+                    isLocal: false
+                },
+                {
+                    id: 'sample-mov',
+                    name: 'Tears of Steel (Simulasi QuickTime .MOV 1080p)',
+                    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+                    format: 'MOV',
+                    size: '185 MB (Stream)',
+                    isLocal: false
+                }
+            ],
+            currentIndex: -1,
+            activeFilter: 'ALL',
+            isTheaterMode: false,
+            isSidebarHidden: false,
+            zeroLagMode: true,
+            controlsVisible: true,
+            showHwStats: false,
+            isScrubbing: false,
+            lastDisplayedSecond: -1,
+            lastSeekTimestamp: 0,
+            idleTimer: null,
+            statsInterval: null,
+            activeSubtitleBlobUrl: null
+        };
+
+        // ==========================================
+        // DOM ELEMENTS
+        // ==========================================
+        const video = document.getElementById('mainVideo');
+        const playerContainer = document.getElementById('playerContainer');
+        const playerColumn = document.getElementById('playerColumn');
+        const sidebarColumn = document.getElementById('sidebarColumn');
+        const emptyStateOverlay = document.getElementById('emptyStateOverlay');
+        const errorOverlay = document.getElementById('errorOverlay');
+        const dropZoneOverlay = document.getElementById('dropZoneOverlay');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const centerStatusIcon = document.getElementById('centerStatusIcon');
+        const centerIconInner = document.getElementById('centerIconInner');
+        const hwStatsOverlay = document.getElementById('hwStatsOverlay');
+
+        // Controls
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const iconPlayPause = document.getElementById('iconPlayPause');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        const btnRewind = document.getElementById('btnRewind');
+        const btnForward = document.getElementById('btnForward');
+        const btnMute = document.getElementById('btnMute');
+        const iconVolume = document.getElementById('iconVolume');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const progressSlider = document.getElementById('progressSlider');
+        const playedBar = document.getElementById('playedBar');
+        const bufferedBar = document.getElementById('bufferedBar');
+        const progressTooltip = document.getElementById('progressTooltip');
+        const currentTimeText = document.getElementById('currentTimeText');
+        const durationText = document.getElementById('durationText');
+        const speedSelect = document.getElementById('speedSelect');
+        const btnStatsToggle = document.getElementById('btnStatsToggle');
+        const btnLoop = document.getElementById('btnLoop');
+        const btnScreenshot = document.getElementById('btnScreenshot');
+        const btnPiP = document.getElementById('btnPiP');
+        const btnTheater = document.getElementById('btnTheater');
+        const btnFullscreen = document.getElementById('btnFullscreen');
+        const iconFullscreen = document.getElementById('iconFullscreen');
+
+        // Top & Metadata Display
+        const activeFormatBadge = document.getElementById('activeFormatBadge');
+        const activeVideoTitle = document.getElementById('activeVideoTitle');
+        const qualityTierBadge = document.getElementById('qualityTierBadge');
+        const resText = document.getElementById('resText');
+        const metaFormatPill = document.getElementById('metaFormatPill');
+        const metaTitle = document.getElementById('metaTitle');
+        const metaSourceType = document.getElementById('metaSourceType');
+        const specContainer = document.getElementById('specContainer');
+        const specResolution = document.getElementById('specResolution');
+        const specSize = document.getElementById('specSize');
+        const specFrameHealth = document.getElementById('specFrameHealth');
+        const codecHintBanner = document.getElementById('codecHintBanner');
+        const hintExtName = document.getElementById('hintExtName');
+
+        // Inputs & Playlist
+        const fileInput = document.getElementById('fileInput');
+        const fastMobileInput = document.getElementById('fastMobileInput');
+        const subtitleInput = document.getElementById('subtitleInput');
+        const urlForm = document.getElementById('urlForm');
+        const urlInput = document.getElementById('urlInput');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const playlistCountText = document.getElementById('playlistCountText');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const loadSpeedBadge = document.getElementById('loadSpeedBadge');
+        const loadSpeedText = document.getElementById('loadSpeedText');
+        const metaLoadLatency = document.getElementById('metaLoadLatency');
+        const metaLoadLatencyText = document.getElementById('metaLoadLatencyText');
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '00:00';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            if (hrs > 0) {
+                return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || isNaN(bytes)) return '-';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
+            }
+            return `${size.toFixed(size >= 10 || i === 0 ? 1 : 2)} ${units[i]}`;
+        }
+
+        function detectFormatFromFilename(nameOrUrl) {
+            const clean = nameOrUrl.split('?')[0].toLowerCase();
+            if (clean.endsWith('.mkv')) return 'MKV';
+            if (clean.endsWith('.mov') || clean.endsWith('.qt')) return 'MOV';
+            if (clean.endsWith('.mp4') || clean.endsWith('.m4v')) return 'MP4';
+            if (clean.endsWith('.webm')) return 'WEBM';
+            return 'MP4';
+        }
+
+        function getBadgeStyle(format) {
+            switch (format.toUpperCase()) {
+                case 'MKV':
+                    return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+                case 'MOV':
+                    return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                default:
+                    return 'bg-sky-500/20 text-sky-300 border-sky-500/40';
+            }
+        }
+
+        function getQualityTier(width, height) {
+            const h = Math.min(width, height) || height;
+            const w = Math.max(width, height) || width;
+            if (w >= 3800 || h >= 2160) return '4K UHD';
+            if (w >= 2500 || h >= 1440) return '2K QHD';
+            if (w >= 1900 || h >= 1080) return '1080p FHD';
+            if (w >= 1260 || h >= 720) return '720p HD';
+            if (h >= 480) return '480p SD';
+            return 'SD';
+        }
+
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const iconMap = {
+                info: 'ph-info text-sky-400',
+                success: 'ph-check-circle text-emerald-400',
+                warning: 'ph-warning text-amber-400',
+                error: 'ph-warning-octagon text-rose-400'
+            };
+            toast.className = 'flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#0b101b] border border-slate-700 text-xs text-white';
+            toast.innerHTML = `<i class="ph-fill ${iconMap[type] || iconMap.info} text-base"></i><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 2500);
+        }
+
+        function triggerCenterAnimation(iconClass) {
+            centerIconInner.className = `ph-fill ${iconClass} text-3xl`;
+            centerStatusIcon.classList.remove('hidden');
+            centerStatusIcon.classList.add('flex');
+            clearTimeout(centerStatusIcon.timer);
+            centerStatusIcon.timer = setTimeout(() => {
+                centerStatusIcon.classList.add('hidden');
+                centerStatusIcon.classList.remove('flex');
+            }, 320);
+        }
+
+        // ==========================================
+        // ADD LOCAL FILES (MP4, MKV, MOV) + INSTANT TIMER
+        // ==========================================
+        function handleLocalFiles(fileList, sourceMode = 'Standar') {
+            if (!fileList || fileList.length === 0) return;
+
+            const startTime = performance.now();
+            let addedVideoCount = 0;
+            let firstNewIndex = state.playlist.length;
+
+            Array.from(fileList).forEach((file) => {
+                const lowerName = file.name.toLowerCase();
+
+                // Subtitle file (.srt or .vtt)
+                if (lowerName.endsWith('.srt') || lowerName.endsWith('.vtt')) {
+                    loadSubtitleFile(file);
+                    return;
+                }
+
+                // Video extensions
+                const isSupportedExt =
+                    lowerName.endsWith('.mp4') ||
+                    lowerName.endsWith('.mkv') ||
+                    lowerName.endsWith('.mov') ||
+                    lowerName.endsWith('.webm') ||
+                    lowerName.endsWith('.m4v') ||
+                    file.type.startsWith('video/');
+
+                if (!isSupportedExt) {
+                    showToast(`Format "${file.name}" bukan MP4/MKV/MOV.`, 'warning');
+                    return;
+                }
+
+                const ext = detectFormatFromFilename(file.name);
+                // Zero-Copy Blob URL creation (takes < 2ms when bypassing mobile Gallery copy)
+                const objectUrl = URL.createObjectURL(file);
+
+                state.playlist.push({
+                    id: 'local-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+                    name: file.name,
+                    url: objectUrl,
+                    format: ext,
+                    size: formatFileSize(file.size),
+                    mimeType: file.type || (ext === 'MKV' ? 'video/x-matroska' : ext === 'MOV' ? 'video/quicktime' : 'video/mp4'),
+                    isLocal: true
+                });
+
+                addedVideoCount++;
+            });
+
+            if (addedVideoCount > 0) {
+                const elapsedMs = Math.max(1, Math.round(performance.now() - startTime));
+                loadSpeedBadge.classList.remove('hidden');
+                loadSpeedBadge.classList.add('inline-flex');
+                loadSpeedText.textContent = `Stream Siap: ${elapsedMs}ms`;
+                metaLoadLatency.classList.remove('hidden');
+                metaLoadLatency.classList.add('inline-flex');
+                metaLoadLatencyText.textContent = `${sourceMode}: ${elapsedMs}ms (Zero-Copy)`;
+
+                renderPlaylist();
+                loadAndPlayIndex(firstNewIndex);
+                showToast(`${addedVideoCount} video dimuat dalam ${elapsedMs}ms (${sourceMode})!`, 'success');
+            }
+        }
+
+        // ==========================================
+        // FAST MOBILE FILE PICKER (BYPASS GALLERY & TRANSCODER)
+        // ==========================================
+        async function triggerFastMobileFilePicker() {
+            // Strategy 1: Use modern File System Access API if available (direct OS file handle)
+            if (typeof window.showOpenFilePicker === 'function') {
+                try {
+                    const handles = await window.showOpenFilePicker({
+                        multiple: true,
+                        types: [
+                            {
+                                description: 'File Video (MP4, MKV, MOV, WEBM)',
+                                accept: {
+                                    'application/octet-stream': ['.mp4', '.mkv', '.mov', '.webm', '.m4v']
+                                }
+                            }
+                        ]
+                    });
+                    const files = await Promise.all(handles.map(h => h.getFile()));
+                    handleLocalFiles(files, 'Direct-FS');
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                    // Fallback to specialized input below if restricted
+                }
+            }
+
+            // Strategy 2: Trigger specialized <input> without 'video/*' wildcard
+            // Forces Android SAF / iOS Document Picker instead of slow Gallery Media Picker
+            fastMobileInput.click();
+        }
+
+        document.getElementById('btnFastMobilePicker').addEventListener('click', triggerFastMobileFilePicker);
+        document.getElementById('btnEmptyFastMobile').addEventListener('click', triggerFastMobileFilePicker);
+        document.getElementById('btnPlaylistFastMobile').addEventListener('click', triggerFastMobileFilePicker);
+
+        fastMobileInput.addEventListener('change', (e) => {
+            handleLocalFiles(e.target.files, 'Mode Cepat HP');
+            fastMobileInput.value = '';
+        });
+
+        // Detect Mobile OS (Android / iOS) to tailor the badge
+        function detectMobileEnvironment() {
+            const ua = navigator.userAgent || '';
+            const isAndroid = /Android/i.test(ua);
+            const isIOS = /iPhone|iPad|iPod/i.test(ua);
+            const badge = document.getElementById('detectedOsBadge');
+            if (isAndroid) {
+                badge.textContent = 'ANDROID TERDETEKSI';
+            } else if (isIOS) {
+                badge.textContent = 'IPHONE/IOS TERDETEKSI';
+            } else {
+                badge.textContent = 'MODE INSTAN HP & PC';
+            }
+        }
+
+        document.getElementById('btnCloseMobileBanner').addEventListener('click', () => {
+            document.getElementById('mobileFastBanner').classList.add('hidden');
+        });
+
+        document.getElementById('btnOpenMobileTips').addEventListener('click', () => {
+            document.getElementById('infoModal').classList.remove('hidden');
+        });
+
+        // ==========================================
+        // SUBTITLE (.SRT & .VTT) CONVERTER & LOADER
+        // ==========================================
+        function loadSubtitleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let content = e.target.result;
+                if (file.name.toLowerCase().endsWith('.srt')) {
+                    content = 'WEBVTT\n\n' + content.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+                }
+                if (state.activeSubtitleBlobUrl) {
+                    URL.revokeObjectURL(state.activeSubtitleBlobUrl);
+                }
+                const vttBlob = new Blob([content], { type: 'text/vtt' });
+                state.activeSubtitleBlobUrl = URL.createObjectURL(vttBlob);
+                const track = document.getElementById('subtitleTrack');
+                track.src = state.activeSubtitleBlobUrl;
+                if (video.textTracks && video.textTracks[0]) {
+                    video.textTracks[0].mode = 'showing';
+                }
+                showToast(`Subtitle "${file.name}" aktif!`, 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        // ==========================================
+        // ZERO-OVERHEAD VIDEO EVENT LISTENERS
+        // ==========================================
+        video.addEventListener('play', () => {
+            iconPlayPause.className = 'ph-fill ph-pause text-xl';
+            renderPlaylist();
+            scheduleIdleHide();
+        });
+
+        video.addEventListener('pause', () => {
+            iconPlayPause.className = 'ph-fill ph-play text-xl';
+            showControlsImmediately();
+            renderPlaylist();
+        });
+
+        video.addEventListener('waiting', () => {
+            loadingSpinner.classList.remove('hidden');
+            loadingSpinner.classList.add('flex');
+        });
+
+        video.addEventListener('playing', () => {
+            loadingSpinner.classList.add('hidden');
+            loadingSpinner.classList.remove('flex');
+            errorOverlay.classList.add('hidden');
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+            loadingSpinner.classList.add('hidden');
+            loadingSpinner.classList.remove('flex');
+            durationText.textContent = formatTime(video.duration);
+
+            const w = video.videoWidth;
+            const h = video.videoHeight;
+            if (w && h) {
+                const tier = getQualityTier(w, h);
+                resText.textContent = `${w} × ${h}`;
+                qualityTierBadge.textContent = tier;
+                qualityTierBadge.classList.remove('hidden');
+                specResolution.textContent = `${w}×${h} (${tier})`;
+                document.getElementById('activeResolutionBadge').classList.remove('hidden');
+            } else {
+                resText.textContent = 'Audio / Unknown';
+                qualityTierBadge.classList.add('hidden');
+                specResolution.textContent = 'Tidak terdeteksi';
+            }
+        });
+
+        // CRITICAL OPTIMIZATION:
+        // Zero DOM/Layout mutation when controls are hidden during 1080p/4K playback!
+        video.addEventListener('timeupdate', () => {
+            // If controls are auto-hidden and user isn't scrubbing, DO NOTHING!
+            // This gives 100% CPU/GPU thread priority to hardware video decoding.
+            if (!state.controlsVisible && !state.showHwStats) return;
+            if (state.isScrubbing || !video.duration) return;
+
+            const current = video.currentTime;
+            const duration = video.duration;
+            const ratio = Math.min(1, Math.max(0, current / duration));
+
+            if (state.controlsVisible) {
+                // GPU composite transform (scaleX) avoids layout reflow
+                playedBar.style.transform = `scaleX(${ratio.toFixed(4)})`;
+                progressSlider.value = Math.floor(ratio * 1000);
+
+                // Only mutate text DOM once per second (1Hz) instead of 4-15Hz
+                const wholeSecond = Math.floor(current);
+                if (wholeSecond !== state.lastDisplayedSecond) {
+                    state.lastDisplayedSecond = wholeSecond;
+                    currentTimeText.textContent = formatTime(current);
+                    updateHardwareStats();
+                }
+            } else if (state.showHwStats) {
+                const wholeSecond = Math.floor(current);
+                if (wholeSecond !== state.lastDisplayedSecond) {
+                    state.lastDisplayedSecond = wholeSecond;
+                    updateHardwareStats();
+                }
+            }
+        });
+
+        video.addEventListener('progress', () => {
+            if (!state.controlsVisible) return;
+            if (video.duration > 0 && video.buffered.length > 0) {
+                const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+                const ratio = Math.min(1, Math.max(0, bufferedEnd / video.duration));
+                bufferedBar.style.transform = `scaleX(${ratio.toFixed(4)})`;
+            }
+        });
+
+        video.addEventListener('ended', () => {
+            showControlsImmediately();
+            if (video.loop) return;
+            if (state.currentIndex + 1 < state.playlist.length) {
+                loadAndPlayIndex(state.currentIndex + 1);
+            }
+        });
+
+        video.addEventListener('error', () => {
+            loadingSpinner.classList.add('hidden');
+            loadingSpinner.classList.remove('flex');
+            const currentItem = state.playlist[state.currentIndex];
+            const fmt = currentItem ? currentItem.format : 'VIDEO';
+            document.getElementById('errorFormatBadge').textContent = `ERROR PEMUTARAN .${fmt}`;
+            document.getElementById('errorTitle').textContent = `Gagal Memutar "${currentItem ? currentItem.name : ''}"`;
+
+            let detailMsg = 'File video rusak, URL tidak dapat diakses, atau codec tidak didukung browser.';
+            if (fmt === 'MKV' || fmt === 'MOV') {
+                detailMsg = `Kontainer .${fmt} ini kemungkinan memakai codec HEVC (H.265) 10-bit tanpa ekstensi hardware di sistem Anda.`;
+            }
+            document.getElementById('errorMessage').textContent = detailMsg;
+            errorOverlay.classList.remove('hidden');
+            errorOverlay.classList.add('flex');
+        });
+
+        // ==========================================
+        // FAST-SEEK & SCRUBBING OPTIMIZATION (1080p/4K)
+        // ==========================================
+        function performFastSeek(targetSeconds) {
+            const now = performance.now();
+            // Throttle hardware decoder seek requests to max 1 every 90ms during dragging
+            if (now - state.lastSeekTimestamp < 90) return;
+            state.lastSeekTimestamp = now;
+
+            if (typeof video.fastSeek === 'function') {
+                video.fastSeek(targetSeconds);
+            } else {
+                video.currentTime = targetSeconds;
+            }
+        }
+
+        progressSlider.addEventListener('mousedown', () => { state.isScrubbing = true; });
+        progressSlider.addEventListener('touchstart', () => { state.isScrubbing = true; }, { passive: true });
+
+        progressSlider.addEventListener('input', (e) => {
+            if (!video.duration) return;
+            state.isScrubbing = true;
+            const ratio = e.target.value / 1000;
+            const seekTime = ratio * video.duration;
+            playedBar.style.transform = `scaleX(${ratio.toFixed(4)})`;
+            currentTimeText.textContent = formatTime(seekTime);
+            performFastSeek(seekTime);
+        });
+
+        function finishScrubbing(e) {
+            if (!state.isScrubbing) return;
+            state.isScrubbing = false;
+            if (video.duration) {
+                const ratio = progressSlider.value / 1000;
+                video.currentTime = ratio * video.duration;
+            }
+        }
+
+        progressSlider.addEventListener('change', finishScrubbing);
+        window.addEventListener('mouseup', finishScrubbing);
+        window.addEventListener('touchend', finishScrubbing, { passive: true });
+
+        progressSlider.addEventListener('mousemove', (e) => {
+            if (!video.duration) return;
+            const rect = progressSlider.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            progressTooltip.textContent = formatTime(pos * video.duration);
+            progressTooltip.style.left = `${pos * 100}%`;
+        });
+
+        // ==========================================
+        // CONTROLS & IDLE AUTO-HIDE ENGINE
+        // ==========================================
+        function showControlsImmediately() {
+            if (!state.controlsVisible) {
+                state.controlsVisible = true;
+                playerContainer.classList.remove('player-idle');
+                // Sync progress bar immediately upon waking UI
+                if (video.duration) {
+                    const ratio = Math.min(1, Math.max(0, video.currentTime / video.duration));
+                    playedBar.style.transform = `scaleX(${ratio.toFixed(4)})`;
+                    progressSlider.value = Math.floor(ratio * 1000);
+                    currentTimeText.textContent = formatTime(video.currentTime);
+                }
+            }
+        }
+
+        function scheduleIdleHide() {
+            clearTimeout(state.idleTimer);
+            if (!video.paused) {
+                state.idleTimer = setTimeout(() => {
+                    if (!video.paused && !state.isScrubbing) {
+                        state.controlsVisible = false;
+                        playerContainer.classList.add('player-idle');
+                    }
+                }, 2200);
+            }
+        }
+
+        playerContainer.addEventListener('mousemove', () => {
+            showControlsImmediately();
+            scheduleIdleHide();
+        }, { passive: true });
+
+        playerContainer.addEventListener('mouseleave', () => {
+            if (!video.paused && !state.isScrubbing) {
+                clearTimeout(state.idleTimer);
+                state.controlsVisible = false;
+                playerContainer.classList.add('player-idle');
+            }
+        });
+
+        function togglePlay() {
+            if (state.currentIndex === -1 && state.playlist.length > 0) {
+                loadAndPlayIndex(0);
+                return;
+            }
+            if (video.paused || video.ended) {
+                video.play();
+                triggerCenterAnimation('ph-play');
+            } else {
+                video.pause();
+                triggerCenterAnimation('ph-pause');
+            }
+        }
+
+        btnPlayPause.addEventListener('click', togglePlay);
+        video.addEventListener('click', togglePlay);
+        video.addEventListener('dblclick', toggleFullscreen);
+
+        btnPrev.addEventListener('click', () => {
+            if (state.currentIndex > 0) {
+                loadAndPlayIndex(state.currentIndex - 1);
+            } else {
+                video.currentTime = 0;
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (state.currentIndex + 1 < state.playlist.length) {
+                loadAndPlayIndex(state.currentIndex + 1);
+            } else {
+                showToast('Ini adalah video terakhir.', 'info');
+            }
+        });
+
+        btnRewind.addEventListener('click', () => {
+            video.currentTime = Math.max(0, video.currentTime - 10);
+            triggerCenterAnimation('ph-arrow-counter-clockwise');
+        });
+
+        btnForward.addEventListener('click', () => {
+            if (video.duration) {
+                video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                triggerCenterAnimation('ph-arrow-clockwise');
+            }
+        });
+
+        // Volume & Mute
+        function updateVolumeUI() {
+            if (video.muted || video.volume === 0) {
+                iconVolume.className = 'ph-fill ph-speaker-slash text-lg text-rose-400';
+            } else if (video.volume < 0.5) {
+                iconVolume.className = 'ph-fill ph-speaker-low text-lg';
+            } else {
+                iconVolume.className = 'ph-fill ph-speaker-high text-lg';
+            }
+        }
+
+        btnMute.addEventListener('click', () => {
+            video.muted = !video.muted;
+            volumeSlider.value = video.muted ? 0 : video.volume;
+            updateVolumeUI();
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            video.volume = parseFloat(e.target.value);
+            video.muted = video.volume === 0;
+            updateVolumeUI();
+        });
+
+        // Playback Speed
+        speedSelect.addEventListener('change', (e) => {
+            video.playbackRate = parseFloat(e.target.value);
+            showToast(`Kecepatan: ${e.target.value}x`, 'info');
+        });
+
+        // Toggle Real-Time Hardware Stats Overlay
+        btnStatsToggle.addEventListener('click', () => {
+            state.showHwStats = !state.showHwStats;
+            hwStatsOverlay.classList.toggle('hidden', !state.showHwStats);
+            btnStatsToggle.classList.toggle('text-sky-400', state.showHwStats);
+            if (state.showHwStats) updateHardwareStats();
+        });
+
+        // Zero-Lag Mode Toggle
+        document.getElementById('btnZeroLagToggle').addEventListener('click', () => {
+            state.zeroLagMode = !state.zeroLagMode;
+            document.body.classList.toggle('zero-lag-mode', state.zeroLagMode);
+            const btn = document.getElementById('btnZeroLagToggle');
+            const txt = document.getElementById('zeroLagText');
+            if (state.zeroLagMode) {
+                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold';
+                txt.textContent = 'Zero-Lag: AKTIF';
+                showToast('Mode Performa Tinggi (Zero-Lag) Diaktifkan', 'success');
+            } else {
+                btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold';
+                txt.textContent = 'Zero-Lag: NONAKTIF';
+                showToast('Mode Standar Diaktifkan', 'info');
+            }
+        });
+
+        // Toggle Sidebar Panel (Save Layout Area & Focus Cinema)
+        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+            state.isSidebarHidden = !state.isSidebarHidden;
+            if (state.isSidebarHidden) {
+                sidebarColumn.classList.add('hidden');
+                playerColumn.classList.remove('lg:col-span-8');
+                playerColumn.classList.add('lg:col-span-12');
+            } else {
+                sidebarColumn.classList.remove('hidden');
+                if (!state.isTheaterMode) {
+                    playerColumn.classList.add('lg:col-span-8');
+                    playerColumn.classList.remove('lg:col-span-12');
+                }
+                renderPlaylist();
+            }
+        });
+
+        // Loop Toggle
+        btnLoop.addEventListener('click', () => {
+            video.loop = !video.loop;
+            btnLoop.classList.toggle('text-sky-400', video.loop);
+            showToast(video.loop ? 'Loop Aktif' : 'Loop Nonaktif', 'info');
+        });
+
+        // Screenshot Capture
+        btnScreenshot.addEventListener('click', () => {
+            if (!video.videoWidth) {
+                showToast('Tidak ada frame video untuk ditangkap.', 'warning');
+                return;
+            }
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `screenshot-${video.videoWidth}x${video.videoHeight}-${Date.now()}.png`;
+                a.click();
+                showToast('Screenshot berhasil disimpan!', 'success');
+            } catch (err) {
+                showToast('Screenshot hanya didukung untuk file video lokal.', 'warning');
+            }
+        });
+
+        // Picture-in-Picture
+        btnPiP.addEventListener('click', async () => {
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else if (document.pictureInPictureEnabled && video.readyState >= 1) {
+                    await video.requestPictureInPicture();
+                } else {
+                    showToast('Putar video terlebih dahulu untuk mode PiP.', 'warning');
+                }
+            } catch (err) {
+                showToast('PiP tidak tersedia.', 'warning');
+            }
+        });
+
+        // Theater Mode
+        function toggleTheaterMode() {
+            state.isTheaterMode = !state.isTheaterMode;
+            if (state.isTheaterMode) {
+                playerColumn.classList.remove('lg:col-span-8');
+                playerColumn.classList.add('lg:col-span-12');
+                sidebarColumn.classList.remove('lg:col-span-4');
+                sidebarColumn.classList.add('lg:col-span-12');
+                btnTheater.classList.add('text-sky-400');
+            } else {
+                if (!state.isSidebarHidden) {
+                    playerColumn.classList.add('lg:col-span-8');
+                    playerColumn.classList.remove('lg:col-span-12');
+                }
+                sidebarColumn.classList.add('lg:col-span-4');
+                sidebarColumn.classList.remove('lg:col-span-12');
+                btnTheater.classList.remove('text-sky-400');
+            }
+        }
+        btnTheater.addEventListener('click', toggleTheaterMode);
+
+        // Aspect Fit Mode Toggle
+        document.getElementById('btnFitToggle').addEventListener('click', () => {
+            const modes = [
+                { class: 'object-contain', label: 'Rasio: Proporsional' },
+                { class: 'object-cover', label: 'Rasio: Penuh (Crop)' },
+                { class: 'object-fill', label: 'Rasio: Rentangkan' }
+            ];
+            const currentIdx = modes.findIndex(m => video.classList.contains(m.class));
+            const nextIdx = (currentIdx + 1) % modes.length;
+            modes.forEach(m => video.classList.remove(m.class));
+            video.classList.add(modes[nextIdx].class);
+            document.getElementById('fitModeText').textContent = modes[nextIdx].label;
+        });
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                playerContainer.requestFullscreen().catch(() => {});
+                iconFullscreen.className = 'ph-bold ph-corners-in text-lg';
+            } else {
+                document.exitFullscreen().catch(() => {});
+                iconFullscreen.className = 'ph-bold ph-corners-out text-lg';
+            }
+        }
+        btnFullscreen.addEventListener('click', toggleFullscreen);
+
+        // ==========================================
+        // FILE INPUTS, DRAG-AND-DROP & URL FORM
+        // ==========================================
+        fileInput.addEventListener('change', (e) => {
+            handleLocalFiles(e.target.files, 'Standar');
+            fileInput.value = '';
+        });
+
+        subtitleInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                loadSubtitleFile(e.target.files[0]);
+                subtitleInput.value = '';
+            }
+        });
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZoneOverlay.classList.remove('hidden');
+            dropZoneOverlay.classList.add('flex');
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget === null) {
+                dropZoneOverlay.classList.add('hidden');
+                dropZoneOverlay.classList.remove('flex');
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZoneOverlay.classList.add('hidden');
+            dropZoneOverlay.classList.remove('flex');
+            if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                handleLocalFiles(e.dataTransfer.files);
+            }
+        });
+
+        urlForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const rawUrl = urlInput.value.trim();
+            if (!rawUrl) return;
+
+            const ext = detectFormatFromFilename(rawUrl);
+            const urlParts = rawUrl.split('/');
+            const fileName = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]) || `Streaming Video (${ext})`;
+
+            state.playlist.push({
+                id: 'url-' + Date.now(),
+                name: fileName,
+                url: rawUrl,
+                format: ext,
+                size: 'Stream Eksternal',
+                isLocal: false
+            });
+
+            urlInput.value = '';
+            renderPlaylist();
+            loadAndPlayIndex(state.playlist.length - 1);
+            showToast('URL video dimuat!', 'success');
+        });
+
+        filterButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                state.activeFilter = btn.dataset.filter;
+                filterButtons.forEach(b => {
+                    b.className = 'filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-slate-800 text-slate-300 hover:bg-slate-700';
+                });
+                btn.className = 'filter-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-sky-500 text-slate-950';
+                renderPlaylist();
+            });
+        });
+
+        document.getElementById('btnClearPlaylist').addEventListener('click', () => {
+            state.playlist.forEach(item => {
+                if (item.isLocal && item.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(item.url);
+                }
+            });
+            state.playlist = [];
+            state.currentIndex = -1;
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            emptyStateOverlay.classList.remove('hidden');
+            renderPlaylist();
+            showToast('Daftar putar & memori RAM dibersihkan.', 'info');
+        });
+
+        document.getElementById('btnLoadDemo').addEventListener('click', () => {
+            if (state.playlist.length > 0) {
+                loadAndPlayIndex(0);
+            }
+        });
+
+        document.getElementById('btnRetryForcePlay').addEventListener('click', () => {
+            if (state.currentIndex >= 0) {
+                loadAndPlayIndex(state.currentIndex);
+            }
+        });
+
+        document.getElementById('btnCloseHint').addEventListener('click', () => {
+            codecHintBanner.classList.add('hidden');
+        });
+
+        // ==========================================
+        // CODEC CHECKER & MODAL
+        // ==========================================
+        const infoModal = document.getElementById('infoModal');
+        document.getElementById('btnCodecInfo').addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+        });
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            infoModal.classList.add('hidden');
+        });
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) infoModal.classList.add('hidden');
+        });
+
+        function populateBrowserCodecSupport() {
+            const codecsToTest = [
+                { label: 'MP4 (H.264 1080p/4K)', mime: 'video/mp4; codecs="avc1.640028, mp4a.40.2"' },
+                { label: 'MP4 (AV1 4K)', mime: 'video/mp4; codecs="av01.0.08M.08"' },
+                { label: 'MKV (H.264)', mime: 'video/x-matroska; codecs="avc1.42E01E"' },
+                { label: 'MKV (VP9 4K)', mime: 'video/x-matroska; codecs="vp9"' },
+                { label: 'MOV (QuickTime)', mime: 'video/quicktime' },
+                { label: 'HEVC / H.265', mime: 'video/mp4; codecs="hev1.1.6.L93.B0"' }
+            ];
+
+            const grid = document.getElementById('codecCheckGrid');
+            grid.innerHTML = '';
+
+            codecsToTest.forEach(item => {
+                const support = video.canPlayType(item.mime);
+                const isSupported = support === 'probably' || support === 'maybe';
+                const badge = document.createElement('div');
+                badge.className = `p-2 rounded-lg border flex items-center justify-between ${
+                    isSupported
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                        : 'bg-[#070a12] border-slate-800 text-slate-400'
+                }`;
+                badge.innerHTML = `
+                    <span>${item.label}</span>
+                    <i class="ph-fill ${isSupported ? 'ph-check-circle text-emerald-400' : 'ph-minus-circle text-slate-500'}"></i>
+                `;
+                grid.appendChild(badge);
+            });
+        }
+
+        // ==========================================
+        // KEYBOARD SHORTCUTS
+        // ==========================================
+        window.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+            switch (e.key.toLowerCase()) {
+                case ' ':
+                case 'k':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'm':
+                    e.preventDefault();
+                    btnMute.click();
+                    break;
+                case 't':
+                    e.preventDefault();
+                    toggleTheaterMode();
+                    break;
+                case 'arrowright':
+                case 'l':
+                    e.preventDefault();
+                    btnForward.click();
+                    break;
+                case 'arrowleft':
+                case 'j':
+                    e.preventDefault();
+                    btnRewind.click();
+                    break;
+                case 'arrowup':
+                    e.preventDefault();
+                    video.volume = Math.min(1, +(video.volume + 0.05).toFixed(2));
+                    video.muted = false;
+                    volumeSlider.value = video.volume;
+                    updateVolumeUI();
+                    break;
+                case 'arrowdown':
+                    e.preventDefault();
+                    video.volume = Math.max(0, +(video.volume - 0.05).toFixed(2));
+                    volumeSlider.value = video.volume;
+                    updateVolumeUI();
+                    break;
+            }
+        });
+
+        // Initial Render
+        detectMobileEnvironment();
+        renderPlaylist();
+        populateBrowserCodecSupport();
+    </script>
+</body>
+</html>
