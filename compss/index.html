@@ -1,0 +1,2201 @@
+<!doctype html>
+<html lang="id" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KompresKita - Kompres Gambar, PDF, ZIP & Kode 100% Lokal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+            },
+            colors: {
+              brand: {
+                50: "#eef2ff",
+                100: "#e0e7ff",
+                400: "#818cf8",
+                500: "#6366f1",
+                600: "#4f46e5",
+                700: "#4338ca",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <!-- Google Fonts: Inter -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <!-- JSZip Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+      .drop-zone-active {
+        border-color: #6366f1 !important;
+        background-color: rgba(99, 102, 241, 0.1) !important;
+        transform: scale(1.01);
+      }
+      /* Range Slider Custom Styling */
+      input[type="range"] {
+        accent-color: #6366f1;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white"
+  >
+    <!-- Toast Notification Container -->
+    <div
+      id="toast-container"
+      class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"
+    ></div>
+
+    <!-- Image Comparison Modal -->
+    <div
+      id="compare-modal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+      >
+        <div
+          class="flex items-center justify-between px-6 py-4 border-b border-slate-800"
+        >
+          <div>
+            <h3
+              id="modal-title"
+              class="font-semibold text-lg text-white truncate max-w-md"
+            >
+              Pratinjau Perbandingan
+            </h3>
+            <p class="text-xs text-slate-400">
+              Bandingkan kualitas visual sebelum dan sesudah dikompresi
+            </p>
+          </div>
+          <button
+            onclick="closeCompareModal()"
+            class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div
+          class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-center"
+        >
+          <!-- Original -->
+          <div
+            class="flex flex-col items-center bg-slate-950/60 p-4 rounded-xl border border-slate-800/80"
+          >
+            <div class="w-full flex justify-between items-center mb-3">
+              <span
+                class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md bg-slate-800 text-slate-300"
+                >Gambar Asli</span
+              >
+              <span
+                id="modal-orig-size"
+                class="text-sm font-medium text-slate-400"
+                >0 KB</span
+              >
+            </div>
+            <div
+              class="w-full h-64 sm:h-80 flex items-center justify-center overflow-hidden rounded-lg bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzFlMjkzYiIgZD0iTTAgMGg4djhIMHpNOCAxNmg4VjhIOHoiLz48L3N2Zz4=')]"
+            >
+              <img
+                id="modal-orig-img"
+                src=""
+                alt="Original"
+                class="max-h-full max-w-full object-contain"
+              />
+            </div>
+            <p id="modal-orig-dim" class="mt-2 text-xs text-slate-500"></p>
+          </div>
+          <!-- Compressed -->
+          <div
+            class="flex flex-col items-center bg-slate-950/60 p-4 rounded-xl border border-brand-500/30"
+          >
+            <div class="w-full flex justify-between items-center mb-3">
+              <span
+                class="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 border border-brand-500/30"
+                >Hasil Kompresi</span
+              >
+              <div class="flex items-center gap-2">
+                <span
+                  id="modal-comp-badge"
+                  class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400"
+                  >-0%</span
+                >
+                <span
+                  id="modal-comp-size"
+                  class="text-sm font-semibold text-emerald-400"
+                  >0 KB</span
+                >
+              </div>
+            </div>
+            <div
+              class="w-full h-64 sm:h-80 flex items-center justify-center overflow-hidden rounded-lg bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzFlMjkzYiIgZD0iTTAgMGg4djhIMHpNOCAxNmg4VjhIOHoiLz48L3N2Zz4=')]"
+            >
+              <img
+                id="modal-comp-img"
+                src=""
+                alt="Compressed"
+                class="max-h-full max-w-full object-contain"
+              />
+            </div>
+            <p id="modal-comp-dim" class="mt-2 text-xs text-slate-500"></p>
+          </div>
+        </div>
+        <div
+          class="px-6 py-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-3"
+        >
+          <button
+            onclick="closeCompareModal()"
+            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-medium transition"
+          >
+            Tutup
+          </button>
+          <a
+            id="modal-download-btn"
+            href="#"
+            download=""
+            class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold flex items-center gap-2 transition shadow-lg shadow-brand-600/25"
+          >
+            <i class="fa-solid fa-download"></i> Unduh Gambar Ini
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navbar / Header -->
+    <header
+      class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/25"
+          >
+            <i class="fa-solid fa-bolt-lightning text-white text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xl tracking-tight text-white"
+                >Kompres<span class="text-brand-400">Kita</span></span
+              >
+              <span
+                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30"
+                >Pro v2.0</span
+              >
+            </div>
+            <p class="text-xs text-slate-400 hidden sm:block">
+              Kompresi Gambar, PDF, ZIP & Kode Tanpa Server
+            </p>
+          </div>
+        </div>
+
+        <!-- Privacy Badge -->
+        <div class="flex items-center gap-3">
+          <div
+            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+            ></span>
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>100% Lokal di Browser</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Hero & Privacy Banner -->
+      <div class="mb-8 text-center max-w-3xl mx-auto">
+        <h1
+          class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-3"
+        >
+          Perkecil Ukuran File dengan
+          <span
+            class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-purple-400"
+            >Cepat & Aman</span
+          >
+        </h1>
+        <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+          Semua proses kompresi dilakukan langsung menggunakan perangkat Anda
+          (<span class="text-slate-200 font-medium">Client-Side Processing</span
+          >). File dokumen, foto pribadi, dan kode Anda tidak pernah diunggah ke
+          server mana pun.
+        </p>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex justify-center mb-8">
+        <div
+          class="inline-flex p-1.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-inner flex-wrap justify-center gap-1 sm:gap-2"
+        >
+          <button
+            onclick="switchTab('image')"
+            id="tab-btn-image"
+            class="tab-btn px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2.5 bg-brand-600 text-white shadow-lg shadow-brand-600/30"
+          >
+            <i class="fa-regular fa-images"></i>
+            <span>Kompres Gambar</span>
+            <span
+              id="badge-count-img"
+              class="hidden px-2 py-0.5 text-xs rounded-full bg-white/20 text-white"
+              >0</span
+            >
+          </button>
+          <button
+            onclick="switchTab('pdf')"
+            id="tab-btn-pdf"
+            class="tab-btn px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+          >
+            <i class="fa-regular fa-file-pdf"></i>
+            <span>Kompres PDF</span>
+          </button>
+          <button
+            onclick="switchTab('zip')"
+            id="tab-btn-zip"
+            class="tab-btn px-4 sm:px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2.5 text-slate-400 hover:text-white hover:bg-slate-800/60"
+          >
+            <i class="fa-regular fa-file-zipper"></i>
+            <span>Arsip ZIP & Minify Kode</span>
+            <span
+              id="badge-count-zip"
+              class="hidden px-2 py-0.5 text-xs rounded-full bg-brand-500/20 text-brand-300"
+              >0</span
+            >
+          </button>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 1: KOMPRESI GAMBAR                     -->
+      <!-- ========================================== -->
+      <section id="tab-image" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Control Panel (Left / Top) -->
+          <div
+            class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5 lg:sticky lg:top-24"
+          >
+            <div
+              class="flex items-center justify-between border-b border-slate-800 pb-4"
+            >
+              <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-sliders text-brand-400"></i>
+                <h2 class="font-bold text-white text-base">
+                  Pengaturan Gambar
+                </h2>
+              </div>
+              <button
+                onclick="resetImageSettings()"
+                class="text-xs text-slate-400 hover:text-brand-400 transition"
+              >
+                Reset
+              </button>
+            </div>
+
+            <!-- Quality Slider -->
+            <div>
+              <div class="flex justify-between text-sm mb-2">
+                <label for="img-quality" class="font-medium text-slate-300"
+                  >Tingkat Kualitas</label
+                >
+                <span id="img-quality-val" class="font-bold text-brand-400"
+                  >80%</span
+                >
+              </div>
+              <input
+                type="range"
+                id="img-quality"
+                min="10"
+                max="100"
+                value="80"
+                step="2"
+                class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer"
+                oninput="
+                  document.getElementById('img-quality-val').textContent =
+                    this.value + '%'
+                "
+                onchange="recompressAllImages()"
+              />
+              <div class="flex justify-between text-[11px] text-slate-500 mt-1">
+                <span>Ukuran Kecil (10%)</span>
+                <span>Seimbang</span>
+                <span>Kualitas Tinggi (100%)</span>
+              </div>
+            </div>
+
+            <!-- Output Format -->
+            <div>
+              <label
+                for="img-format"
+                class="block text-sm font-medium text-slate-300 mb-2"
+                >Format Keluaran</label
+              >
+              <select
+                id="img-format"
+                onchange="recompressAllImages()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition"
+              >
+                <option value="auto">Sesuai Asli (Otomatis Optimal)</option>
+                <option value="image/webp">
+                  WEBP (Paling Hemat Ruang - Rekomendasi)
+                </option>
+                <option value="image/jpeg">
+                  JPEG / JPG (Kompatibilitas Tinggi)
+                </option>
+                <option value="image/png">PNG (Mendukung Transparansi)</option>
+              </select>
+              <p class="text-[11px] text-slate-500 mt-1.5">
+                <i class="fa-solid fa-circle-info mr-1 text-brand-400"></i
+                >Format PNG adalah lossless; ubah ke WEBP untuk penghematan
+                hingga 80%.
+              </p>
+            </div>
+
+            <!-- Resize Option -->
+            <div>
+              <label
+                for="img-resize-mode"
+                class="block text-sm font-medium text-slate-300 mb-2"
+                >Ubah Ukuran Dimensi (Resize)</label
+              >
+              <select
+                id="img-resize-mode"
+                onchange="handleResizeModeChange()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition"
+              >
+                <option value="none">Pertahankan Dimensi Asli (100%)</option>
+                <option value="scale-75">
+                  Perkecil ke 75% dari Ukuran Asli
+                </option>
+                <option value="scale-50">
+                  Perkecil ke 50% dari Ukuran Asli
+                </option>
+                <option value="scale-25">
+                  Perkecil ke 25% dari Ukuran Asli
+                </option>
+                <option value="max-width">Atur Lebar Maksimal (Piksel)</option>
+              </select>
+            </div>
+
+            <!-- Custom Max Width Input -->
+            <div id="custom-width-container" class="hidden">
+              <label
+                for="img-max-width"
+                class="block text-xs font-medium text-slate-400 mb-1.5"
+                >Lebar Maksimal (px)</label
+              >
+              <div class="relative">
+                <input
+                  type="number"
+                  id="img-max-width"
+                  value="1280"
+                  min="100"
+                  max="8000"
+                  step="50"
+                  onchange="recompressAllImages()"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-brand-500"
+                />
+                <span class="absolute right-3.5 top-2 text-xs text-slate-500"
+                  >piksel</span
+                >
+              </div>
+            </div>
+
+            <!-- Global Summary Box -->
+            <div
+              id="img-summary-box"
+              class="hidden pt-4 border-t border-slate-800 space-y-3"
+            >
+              <div
+                class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-3.5 space-y-2"
+              >
+                <div class="flex justify-between text-xs text-slate-400">
+                  <span>Total Ukuran Asli:</span>
+                  <span id="img-total-orig" class="font-medium text-slate-200"
+                    >0 KB</span
+                  >
+                </div>
+                <div class="flex justify-between text-xs text-slate-400">
+                  <span>Total Terkompresi:</span>
+                  <span id="img-total-comp" class="font-bold text-emerald-400"
+                    >0 KB</span
+                  >
+                </div>
+                <div
+                  class="pt-2 border-t border-slate-800/80 flex justify-between items-center"
+                >
+                  <span class="text-xs font-semibold text-slate-300"
+                    >Total Penghematan:</span
+                  >
+                  <span
+                    id="img-total-saved"
+                    class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    >0 KB (0%)</span
+                  >
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row lg:flex-col gap-2">
+                <button
+                  onclick="downloadAllImagesZip()"
+                  class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-brand-600/25 transition"
+                >
+                  <i class="fa-solid fa-file-zipper"></i> Unduh Semua (.ZIP)
+                </button>
+                <button
+                  onclick="clearAllImages()"
+                  class="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-300 font-medium text-xs flex items-center justify-center gap-2 transition"
+                >
+                  <i class="fa-regular fa-trash-can"></i> Bersihkan Daftar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dropzone & Image List (Right / Bottom) -->
+          <div class="lg:col-span-8 space-y-6">
+            <!-- Drag & Drop Zone -->
+            <div
+              id="img-dropzone"
+              onclick="document.getElementById('img-file-input').click()"
+              class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-900/50 hover:bg-slate-900/90 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 group"
+            >
+              <input
+                type="file"
+                id="img-file-input"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                onchange="handleImageFiles(this.files)"
+              />
+              <div
+                class="w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 mx-auto flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-brand-500 group-hover:text-white transition-all duration-200"
+              >
+                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+              </div>
+              <h3 class="text-base sm:text-lg font-bold text-white mb-1">
+                Tarik & Lepas Gambar di Sini
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-400 mb-4">
+                Atau klik untuk memilih banyak file sekaligus dari perangkat
+                Anda
+              </p>
+              <div
+                class="inline-flex flex-wrap justify-center gap-2 text-[11px] font-medium text-slate-400"
+              >
+                <span
+                  class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700"
+                  >JPG / JPEG</span
+                >
+                <span
+                  class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700"
+                  >PNG</span
+                >
+                <span
+                  class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700"
+                  >WEBP</span
+                >
+                <span
+                  class="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-300 border border-brand-500/20"
+                  >Mendukung Batch Upload</span
+                >
+              </div>
+            </div>
+
+            <!-- Global Progress Bar for Images -->
+            <div
+              id="img-progress-wrapper"
+              class="hidden bg-slate-900 border border-slate-800 rounded-xl p-4"
+            >
+              <div class="flex justify-between text-xs font-medium mb-2">
+                <span
+                  id="img-progress-text"
+                  class="text-brand-400 flex items-center gap-2"
+                >
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> Memproses
+                  gambar...
+                </span>
+                <span id="img-progress-percent" class="text-slate-300">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  id="img-progress-bar"
+                  class="h-full bg-gradient-to-r from-brand-500 to-purple-500 transition-all duration-300"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Image Items List -->
+            <div id="img-list-container" class="space-y-3">
+              <!-- Empty State -->
+              <div
+                id="img-empty-state"
+                class="bg-slate-900/30 border border-slate-800/60 rounded-2xl p-10 text-center"
+              >
+                <i
+                  class="fa-regular fa-images text-3xl text-slate-600 mb-2"
+                ></i>
+                <p class="text-sm text-slate-400">
+                  Belum ada gambar yang dipilih. Unggah gambar di atas untuk
+                  mulai mengompresi.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: KOMPRESI PDF                        -->
+      <!-- ========================================== -->
+      <section id="tab-pdf" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- PDF Settings -->
+          <div
+            class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5"
+          >
+            <div
+              class="flex items-center gap-2.5 border-b border-slate-800 pb-4"
+            >
+              <i class="fa-solid fa-file-pdf text-rose-400"></i>
+              <h2 class="font-bold text-white text-base">
+                Pengaturan Kompresi PDF
+              </h2>
+            </div>
+
+            <!-- Preset Mode -->
+            <div class="space-y-2.5">
+              <label class="block text-sm font-medium text-slate-300"
+                >Mode Preset Kompresi</label
+              >
+
+              <label
+                class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-brand-500/50 transition"
+              >
+                <input
+                  type="radio"
+                  name="pdf-preset"
+                  value="extreme"
+                  onchange="applyPdfPreset('extreme')"
+                  class="mt-1 accent-brand-500"
+                />
+                <div>
+                  <div class="text-sm font-semibold text-white">
+                    Kompresi Ekstrem (Ukuran Terkecil)
+                  </div>
+                  <p class="text-xs text-slate-400">
+                    Kualitas gambar 45%, Resolusi 1.0x. Cocok untuk lampiran
+                    email cepat.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                class="flex items-start gap-3 p-3 rounded-xl border border-brand-500/50 bg-brand-500/5 cursor-pointer transition"
+              >
+                <input
+                  type="radio"
+                  name="pdf-preset"
+                  value="recommended"
+                  checked
+                  onchange="applyPdfPreset('recommended')"
+                  class="mt-1 accent-brand-500"
+                />
+                <div>
+                  <div
+                    class="text-sm font-semibold text-white flex items-center gap-2"
+                  >
+                    Seimbang / Rekomendasi
+                    <span
+                      class="text-[10px] px-2 py-0.5 rounded bg-brand-500/20 text-brand-300"
+                      >Default</span
+                    >
+                  </div>
+                  <p class="text-xs text-slate-400">
+                    Kualitas gambar 65%, Resolusi 1.25x. Teks tetap tajam dengan
+                    ukuran hemat.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer hover:border-brand-500/50 transition"
+              >
+                <input
+                  type="radio"
+                  name="pdf-preset"
+                  value="high"
+                  onchange="applyPdfPreset('high')"
+                  class="mt-1 accent-brand-500"
+                />
+                <div>
+                  <div class="text-sm font-semibold text-white">
+                    Kualitas Tinggi
+                  </div>
+                  <p class="text-xs text-slate-400">
+                    Kualitas gambar 82%, Resolusi 1.5x. Mengurangi ukuran
+                    dokumen scan besar.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Fine Tune Sliders -->
+            <div class="pt-3 border-t border-slate-800 space-y-4">
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-slate-300 font-medium"
+                    >Kualitas Render JPEG Halaman</span
+                  >
+                  <span id="pdf-quality-label" class="text-brand-400 font-bold"
+                    >65%</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="pdf-quality-slider"
+                  min="20"
+                  max="95"
+                  value="65"
+                  step="5"
+                  oninput="
+                    document.getElementById('pdf-quality-label').textContent =
+                      this.value + '%'
+                  "
+                  class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-slate-300 font-medium"
+                    >Skala Ketajaman (DPI Scale)</span
+                  >
+                  <span id="pdf-scale-label" class="text-brand-400 font-bold"
+                    >1.25x</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="pdf-scale-slider"
+                  min="0.8"
+                  max="2.0"
+                  value="1.25"
+                  step="0.15"
+                  oninput="
+                    document.getElementById('pdf-scale-label').textContent =
+                      this.value + 'x'
+                  "
+                  class="w-full h-2 bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <div
+              class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300/90 leading-relaxed"
+            >
+              <i class="fa-solid fa-circle-info mr-1"></i>
+              <strong>Cara Kerja:</strong> Setiap halaman PDF dirender ke kanvas
+              beresolusi terukur lalu dikompresi ulang menjadi PDF baru yang
+              ramping. Sangat efektif untuk PDF hasil scan atau PDF berisi
+              banyak gambar.
+            </div>
+          </div>
+
+          <!-- PDF Upload & Action Area -->
+          <div class="lg:col-span-8 space-y-6">
+            <!-- PDF Dropzone -->
+            <div
+              id="pdf-dropzone"
+              onclick="document.getElementById('pdf-file-input').click()"
+              class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-900/50 hover:bg-slate-900/90 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 group"
+            >
+              <input
+                type="file"
+                id="pdf-file-input"
+                accept="application/pdf"
+                class="hidden"
+                onchange="handlePdfFile(this.files[0])"
+              />
+              <div
+                class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 mx-auto flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-white transition-all duration-200"
+              >
+                <i class="fa-solid fa-file-pdf text-2xl"></i>
+              </div>
+              <h3 class="text-base sm:text-lg font-bold text-white mb-1">
+                Pilih atau Tarik File PDF ke Sini
+              </h3>
+              <p class="text-xs sm:text-sm text-slate-400">
+                Mendukung dokumen PDF multi-halaman secara lokal
+              </p>
+            </div>
+
+            <!-- Selected PDF Card -->
+            <div
+              id="pdf-work-card"
+              class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl"
+            >
+              <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800"
+              >
+                <div class="flex items-center gap-4">
+                  <div
+                    class="w-12 h-12 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0"
+                  >
+                    <i class="fa-solid fa-file-pdf text-2xl"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <h4
+                      id="pdf-filename"
+                      class="font-bold text-white truncate max-w-xs sm:max-w-md"
+                    >
+                      dokumen.pdf
+                    </h4>
+                    <div
+                      class="flex items-center gap-3 text-xs text-slate-400 mt-1"
+                    >
+                      <span id="pdf-orig-size">Ukuran Asli: 0 MB</span>
+                      <span>•</span>
+                      <span
+                        id="pdf-page-count"
+                        class="text-brand-400 font-medium"
+                        >Memuat halaman...</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onclick="startPdfCompression()"
+                  id="btn-compress-pdf"
+                  class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-brand-600/25 transition shrink-0"
+                >
+                  <i class="fa-solid fa-compress"></i> Kompres PDF Sekarang
+                </button>
+              </div>
+
+              <!-- Progress Bar -->
+              <div id="pdf-progress-box" class="hidden space-y-2">
+                <div class="flex justify-between text-xs font-medium">
+                  <span
+                    id="pdf-progress-status"
+                    class="text-brand-400 flex items-center gap-2"
+                  >
+                    <i class="fa-solid fa-spinner fa-spin"></i> Mengompresi
+                    halaman...
+                  </span>
+                  <span id="pdf-progress-percent" class="text-slate-300"
+                    >0%</span
+                  >
+                </div>
+                <div
+                  class="w-full h-3 bg-slate-800 rounded-full overflow-hidden"
+                >
+                  <div
+                    id="pdf-progress-bar"
+                    class="h-full bg-gradient-to-r from-brand-500 to-emerald-400 transition-all duration-200"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Result Comparison Box -->
+              <div
+                id="pdf-result-box"
+                class="hidden bg-slate-950 border border-slate-800 rounded-xl p-5"
+              >
+                <div
+                  class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center mb-5"
+                >
+                  <div
+                    class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-center"
+                  >
+                    <span class="text-xs text-slate-400 block mb-1"
+                      >Ukuran Sebelum</span
+                    >
+                    <span
+                      id="pdf-res-before"
+                      class="text-base font-bold text-slate-200"
+                      >0 KB</span
+                    >
+                  </div>
+                  <div
+                    class="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-center"
+                  >
+                    <span class="text-xs text-slate-400 block mb-1"
+                      >Ukuran Sesudah</span
+                    >
+                    <span
+                      id="pdf-res-after"
+                      class="text-base font-bold text-emerald-400"
+                      >0 KB</span
+                    >
+                  </div>
+                  <div
+                    class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center"
+                  >
+                    <span class="text-xs text-emerald-300 block mb-1"
+                      >Penghematan Ruang</span
+                    >
+                    <span
+                      id="pdf-res-saved"
+                      class="text-base font-extrabold text-emerald-400"
+                      >0%</span
+                    >
+                  </div>
+                </div>
+
+                <div
+                  class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800/80"
+                >
+                  <p id="pdf-res-note" class="text-xs text-slate-400"></p>
+                  <a
+                    id="pdf-download-link"
+                    href="#"
+                    download=""
+                    class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition"
+                  >
+                    <i class="fa-solid fa-download"></i> Unduh PDF Terkompresi
+                  </a>
+                </div>
+              </div>
+
+              <!-- Preview Canvas Container (First Page) -->
+              <div class="pt-2">
+                <p class="text-xs font-medium text-slate-400 mb-3">
+                  Pratinjau Halaman Pertama:
+                </p>
+                <div
+                  class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex justify-center max-h-96 overflow-hidden"
+                >
+                  <canvas
+                    id="pdf-preview-canvas"
+                    class="max-h-80 w-auto object-contain rounded shadow"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: ARSIP ZIP & MINIFIKASI KODE/TEKS    -->
+      <!-- ========================================== -->
+      <section id="tab-zip" class="tab-content hidden space-y-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- LEFT: Multi-File ZIP Compressor -->
+          <div
+            class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5"
+          >
+            <div
+              class="flex items-center justify-between border-b border-slate-800 pb-4"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center"
+                >
+                  <i class="fa-solid fa-box-archive text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="font-bold text-white text-base">
+                    Kemas & Kompres ke Arsip .ZIP
+                  </h2>
+                  <p class="text-xs text-slate-400">
+                    Kompres berbagai jenis file menggunakan algoritma DEFLATE
+                  </p>
+                </div>
+              </div>
+              <button
+                onclick="clearZipFiles()"
+                class="text-xs text-slate-400 hover:text-rose-400 transition"
+              >
+                Bersihkan
+              </button>
+            </div>
+
+            <!-- Dropzone for Any File -->
+            <div
+              id="zip-dropzone"
+              onclick="document.getElementById('zip-file-input').click()"
+              class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-950/60 rounded-xl p-6 text-center cursor-pointer transition group"
+            >
+              <input
+                type="file"
+                id="zip-file-input"
+                multiple
+                class="hidden"
+                onchange="handleZipFiles(this.files)"
+              />
+              <i
+                class="fa-solid fa-folder-plus text-2xl text-amber-400 mb-2 group-hover:scale-110 transition-transform"
+              ></i>
+              <p class="text-sm font-semibold text-white">
+                Tambah File Apa Saja ke Dalam Arsip
+              </p>
+              <p class="text-xs text-slate-400 mt-0.5">
+                Dokumen Word, Excel, Audio, Kode, Gambar, atau Teks
+              </p>
+            </div>
+
+            <!-- Compression Level & Options -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5"
+                  >Nama File Arsip</label
+                >
+                <div
+                  class="flex items-center bg-slate-950 border border-slate-800 rounded-xl overflow-hidden focus-within:border-brand-500"
+                >
+                  <input
+                    type="text"
+                    id="zip-archive-name"
+                    value="Arsip_KompresKita"
+                    class="w-full bg-transparent px-3.5 py-2 text-sm text-white focus:outline-none"
+                  />
+                  <span
+                    class="px-3 text-xs font-semibold text-slate-500 bg-slate-900 py-2.5 border-l border-slate-800"
+                    >.zip</span
+                  >
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5"
+                  >Tingkat Kompresi</label
+                >
+                <select
+                  id="zip-level"
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
+                >
+                  <option value="9">Level 9 - Maksimal (Paling Kecil)</option>
+                  <option value="6">Level 6 - Normal / Seimbang</option>
+                  <option value="1">Level 1 - Super Cepat</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Auto-minify text files inside ZIP checkbox -->
+            <label
+              class="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer select-none bg-slate-950/70 p-3 rounded-xl border border-slate-800"
+            >
+              <input
+                type="checkbox"
+                id="zip-auto-minify"
+                checked
+                class="rounded accent-brand-500 w-4 h-4"
+              />
+              <span
+                >Otomatis perkecil (minify) file JSON, HTML, CSS, dan JS sebelum
+                dimasukkan ke ZIP</span
+              >
+            </label>
+
+            <!-- File Queue List -->
+            <div
+              id="zip-file-list"
+              class="space-y-2 max-h-60 overflow-y-auto pr-1"
+            >
+              <div class="text-center py-6 text-xs text-slate-500">
+                Belum ada file di dalam daftar antrean ZIP.
+              </div>
+            </div>
+
+            <!-- ZIP Progress -->
+            <div id="zip-progress-wrapper" class="hidden space-y-1.5">
+              <div class="flex justify-between text-xs">
+                <span class="text-brand-400 font-medium"
+                  >Membuat arsip ZIP...</span
+                >
+                <span id="zip-progress-text" class="text-slate-300">0%</span>
+              </div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  id="zip-progress-bar"
+                  class="h-full bg-amber-500 transition-all"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- ZIP Footer Stats & Action -->
+            <div
+              class="pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div class="text-xs space-y-0.5">
+                <div class="text-slate-400">
+                  Total Ukuran Asli:
+                  <span id="zip-total-orig" class="font-semibold text-white"
+                    >0 KB</span
+                  >
+                </div>
+                <div
+                  id="zip-result-stat"
+                  class="hidden text-emerald-400 font-semibold"
+                >
+                  Ukuran ZIP: <span id="zip-total-after">0 KB</span>
+                </div>
+              </div>
+              <button
+                onclick="generateZipArchive()"
+                id="btn-create-zip"
+                class="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition"
+              >
+                <i class="fa-solid fa-file-zipper"></i> Buat & Unduh .ZIP
+              </button>
+            </div>
+          </div>
+
+          <!-- RIGHT: Text / Code Minifier (JSON, HTML, CSS, JS) -->
+          <div
+            class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5"
+          >
+            <div
+              class="flex items-center justify-between border-b border-slate-800 pb-4"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center"
+                >
+                  <i class="fa-solid fa-code text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="font-bold text-white text-base">
+                    Minifikasi Teks & Kode
+                  </h2>
+                  <p class="text-xs text-slate-400">
+                    Hapus spasi & komentar pada JSON, CSS, HTML, JS
+                  </p>
+                </div>
+              </div>
+              <label
+                class="text-xs font-medium text-brand-400 hover:text-brand-300 cursor-pointer flex items-center gap-1"
+              >
+                <i class="fa-solid fa-upload"></i> Muat File
+                <input
+                  type="file"
+                  accept=".json,.html,.htm,.css,.js,.txt,.xml,.svg"
+                  class="hidden"
+                  onchange="loadCodeFile(this.files[0])"
+                />
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <select
+                id="minify-type"
+                class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-slate-200 focus:outline-none focus:border-brand-500"
+              >
+                <option value="auto">Deteksi Otomatis</option>
+                <option value="json">JSON Data</option>
+                <option value="css">CSS Stylesheet</option>
+                <option value="html">HTML / SVG</option>
+                <option value="js">JavaScript</option>
+              </select>
+              <button
+                onclick="insertSampleCode()"
+                class="text-xs text-slate-400 hover:text-white underline"
+              >
+                Isi Contoh Kode
+              </button>
+            </div>
+
+            <div>
+              <textarea
+                id="minify-input"
+                rows="7"
+                placeholder="Tempelkan kode JSON, HTML, CSS, atau JS di sini..."
+                oninput="updateCodeStats()"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-brand-500 resize-y"
+              ></textarea>
+            </div>
+
+            <div
+              class="flex items-center justify-between text-xs bg-slate-950 px-3.5 py-2.5 rounded-xl border border-slate-800"
+            >
+              <span class="text-slate-400"
+                >Ukuran Awal:
+                <strong id="code-orig-size" class="text-slate-200"
+                  >0 B</strong
+                ></span
+              >
+              <span class="text-slate-400"
+                >Hasil:
+                <strong id="code-min-size" class="text-emerald-400"
+                  >0 B</strong
+                ></span
+              >
+              <span
+                id="code-saved-badge"
+                class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold"
+                >0%</span
+              >
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                onclick="processMinifyCode()"
+                class="col-span-2 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-brand-600/20"
+              >
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Minify Sekarang
+              </button>
+              <button
+                onclick="copyMinifiedCode()"
+                class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs flex items-center justify-center gap-1.5 transition"
+              >
+                <i class="fa-regular fa-copy"></i> Salin
+              </button>
+            </div>
+
+            <button
+              onclick="downloadMinifiedFile()"
+              id="btn-download-code"
+              class="w-full py-2 px-4 rounded-xl border border-slate-700 hover:border-brand-500 text-slate-300 hover:text-white text-xs font-medium flex items-center justify-center gap-2 transition"
+            >
+              <i class="fa-solid fa-download"></i> Unduh sebagai File
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 mt-12">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500"
+      >
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-lock text-emerald-500"></i>
+          <span
+            >Privasi Terjamin: Seluruh pemrosesan menggunakan HTML5 Canvas,
+            WebAssembly & JavaScript lokal.</span
+          >
+        </div>
+        <div>
+          KompresKitaByAlfin &copy; 2026 — Dibuat untuk Kecepatan & Privasi
+        </div>
+      </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+      // Set up PDF.js worker
+      if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+
+      // ==========================================
+      // UTILITIES & TOAST NOTIFICATIONS
+      // ==========================================
+      function formatBytes(bytes, decimals = 2) {
+        if (!bytes || bytes === 0) return "0 B";
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (
+          parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]
+        );
+      }
+
+      function showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+
+        const colors = {
+          success: "bg-slate-900 border-emerald-500/40 text-emerald-400",
+          error: "bg-slate-900 border-rose-500/40 text-rose-400",
+          info: "bg-slate-900 border-brand-500/40 text-brand-400",
+        };
+        const icons = {
+          success: "fa-circle-check",
+          error: "fa-circle-exclamation",
+          info: "fa-circle-info",
+        };
+
+        toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+        toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} text-base shrink-0"></i>
+                <span class="text-xs font-medium text-slate-200 leading-snug">${message}</span>
+            `;
+
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.remove("translate-y-2", "opacity-0");
+        });
+
+        setTimeout(() => {
+          toast.classList.add("opacity-0", "translate-y-2");
+          setTimeout(() => toast.remove(), 300);
+        }, 3500);
+      }
+
+      // ==========================================
+      // TAB NAVIGATION
+      // ==========================================
+      function switchTab(tabId) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((el) => el.classList.add("hidden"));
+        document.getElementById(`tab-${tabId}`).classList.remove("hidden");
+
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.classList.remove(
+            "bg-brand-600",
+            "text-white",
+            "shadow-lg",
+            "shadow-brand-600/30",
+          );
+          btn.classList.add(
+            "text-slate-400",
+            "hover:text-white",
+            "hover:bg-slate-800/60",
+          );
+        });
+
+        const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+        activeBtn.classList.remove(
+          "text-slate-400",
+          "hover:text-white",
+          "hover:bg-slate-800/60",
+        );
+        activeBtn.classList.add(
+          "bg-brand-600",
+          "text-white",
+          "shadow-lg",
+          "shadow-brand-600/30",
+        );
+      }
+
+      // Setup Drag & Drop visual states for all dropzones
+      function setupDropzone(zoneId, callback) {
+        const zone = document.getElementById(zoneId);
+        if (!zone) return;
+
+        ["dragenter", "dragover"].forEach((evt) => {
+          zone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.add("drop-zone-active");
+          });
+        });
+
+        ["dragleave", "drop"].forEach((evt) => {
+          zone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zone.classList.remove("drop-zone-active");
+          });
+        });
+
+        zone.addEventListener("drop", (e) => {
+          const files = e.dataTransfer.files;
+          if (files && files.length > 0) {
+            callback(files);
+          }
+        });
+      }
+
+      // ==========================================
+      // 1. IMAGE COMPRESSION MODULE
+      // ==========================================
+      let imageItems = []; // { id, file, origUrl, origWidth, origHeight, compBlob, compUrl, compWidth, compHeight, outName }
+
+      function handleResizeModeChange() {
+        const mode = document.getElementById("img-resize-mode").value;
+        const customContainer = document.getElementById(
+          "custom-width-container",
+        );
+        if (mode === "max-width") {
+          customContainer.classList.remove("hidden");
+        } else {
+          customContainer.classList.add("hidden");
+        }
+        recompressAllImages();
+      }
+
+      function resetImageSettings() {
+        document.getElementById("img-quality").value = 80;
+        document.getElementById("img-quality-val").textContent = "80%";
+        document.getElementById("img-format").value = "auto";
+        document.getElementById("img-resize-mode").value = "none";
+        document
+          .getElementById("custom-width-container")
+          .classList.add("hidden");
+        recompressAllImages();
+        showToast("Pengaturan gambar dikembalikan ke standar.", "info");
+      }
+
+      async function handleImageFiles(fileList) {
+        const validFiles = Array.from(fileList).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (validFiles.length === 0) {
+          showToast("Harap pilih file gambar (JPG, PNG, atau WEBP).", "error");
+          return;
+        }
+
+        const progressWrapper = document.getElementById("img-progress-wrapper");
+        const progressBar = document.getElementById("img-progress-bar");
+        const progressPercent = document.getElementById("img-progress-percent");
+        progressWrapper.classList.remove("hidden");
+
+        for (let i = 0; i < validFiles.length; i++) {
+          const file = validFiles[i];
+          const id =
+            "img-" +
+            Date.now() +
+            "-" +
+            Math.random().toString(36).substring(2, 7);
+          const origUrl = URL.createObjectURL(file);
+
+          const item = {
+            id,
+            file,
+            origUrl,
+            origWidth: 0,
+            origHeight: 0,
+            compBlob: null,
+            compUrl: null,
+            compWidth: 0,
+            compHeight: 0,
+            outName: file.name,
+          };
+
+          await compressSingleImageItem(item);
+          imageItems.push(item);
+
+          const pct = Math.round(((i + 1) / validFiles.length) * 100);
+          progressBar.style.width = `${pct}%`;
+          progressPercent.textContent = `${pct}%`;
+        }
+
+        setTimeout(() => {
+          progressWrapper.classList.add("hidden");
+          progressBar.style.width = "0%";
+        }, 500);
+
+        renderImageList();
+        showToast(
+          `${validFiles.length} gambar berhasil dikompresi!`,
+          "success",
+        );
+        document.getElementById("img-file-input").value = "";
+      }
+
+      function compressSingleImageItem(item) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            item.origWidth = img.naturalWidth;
+            item.origHeight = img.naturalHeight;
+
+            // Calculate target dimensions
+            const resizeMode = document.getElementById("img-resize-mode").value;
+            let targetW = img.naturalWidth;
+            let targetH = img.naturalHeight;
+
+            if (resizeMode === "scale-75") {
+              targetW = Math.round(targetW * 0.75);
+              targetH = Math.round(targetH * 0.75);
+            } else if (resizeMode === "scale-50") {
+              targetW = Math.round(targetW * 0.5);
+              targetH = Math.round(targetH * 0.5);
+            } else if (resizeMode === "scale-25") {
+              targetW = Math.round(targetW * 0.25);
+              targetH = Math.round(targetH * 0.25);
+            } else if (resizeMode === "max-width") {
+              const maxW =
+                parseInt(document.getElementById("img-max-width").value) ||
+                1280;
+              if (targetW > maxW) {
+                const ratio = maxW / targetW;
+                targetW = maxW;
+                targetH = Math.round(targetH * ratio);
+              }
+            }
+
+            targetW = Math.max(1, targetW);
+            targetH = Math.max(1, targetH);
+            item.compWidth = targetW;
+            item.compHeight = targetH;
+
+            const canvas = document.createElement("canvas");
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext("2d");
+
+            // Determine output mime type
+            const formatSelect = document.getElementById("img-format").value;
+            let outMime = formatSelect;
+            if (formatSelect === "auto") {
+              // If PNG and user lowers quality, convert to WEBP or keep PNG
+              outMime =
+                item.file.type === "image/png" ? "image/webp" : item.file.type;
+            }
+
+            // Fill white background if converting transparent image to JPEG
+            if (outMime === "image/jpeg") {
+              ctx.fillStyle = "#FFFFFF";
+              ctx.fillRect(0, 0, targetW, targetH);
+            }
+
+            ctx.drawImage(img, 0, 0, targetW, targetH);
+
+            const quality =
+              parseInt(document.getElementById("img-quality").value) / 100;
+
+            canvas.toBlob(
+              (blob) => {
+                if (item.compUrl) URL.revokeObjectURL(item.compUrl);
+
+                // If compressed blob is larger than original and no format/dimension change occurred, fallback to original
+                const sameDim =
+                  targetW === item.origWidth && targetH === item.origHeight;
+                const sameFormat = outMime === item.file.type;
+                if (
+                  blob &&
+                  sameDim &&
+                  sameFormat &&
+                  blob.size > item.file.size
+                ) {
+                  item.compBlob = item.file;
+                } else {
+                  item.compBlob = blob || item.file;
+                }
+
+                item.compUrl = URL.createObjectURL(item.compBlob);
+
+                // Generate Output Filename
+                const extMap = {
+                  "image/jpeg": ".jpg",
+                  "image/webp": ".webp",
+                  "image/png": ".png",
+                };
+                const baseName = item.file.name.replace(/\.[^/.]+$/, "");
+                const ext = extMap[item.compBlob.type] || ".jpg";
+                item.outName = `${baseName}-kompres${ext}`;
+
+                resolve();
+              },
+              outMime,
+              quality,
+            );
+          };
+          img.src = item.origUrl;
+        });
+      }
+
+      async function recompressAllImages() {
+        if (imageItems.length === 0) return;
+
+        const progressWrapper = document.getElementById("img-progress-wrapper");
+        const progressBar = document.getElementById("img-progress-bar");
+        const progressPercent = document.getElementById("img-progress-percent");
+        progressWrapper.classList.remove("hidden");
+
+        for (let i = 0; i < imageItems.length; i++) {
+          await compressSingleImageItem(imageItems[i]);
+          const pct = Math.round(((i + 1) / imageItems.length) * 100);
+          progressBar.style.width = `${pct}%`;
+          progressPercent.textContent = `${pct}%`;
+        }
+
+        setTimeout(() => {
+          progressWrapper.classList.add("hidden");
+        }, 300);
+
+        renderImageList();
+      }
+
+      function renderImageList() {
+        const container = document.getElementById("img-list-container");
+        const summaryBox = document.getElementById("img-summary-box");
+        const badge = document.getElementById("badge-count-img");
+
+        if (imageItems.length === 0) {
+          summaryBox.classList.add("hidden");
+          badge.classList.add("hidden");
+          container.innerHTML = `
+                    <div id="img-empty-state" class="bg-slate-900/30 border border-slate-800/60 rounded-2xl p-10 text-center">
+                        <i class="fa-regular fa-images text-3xl text-slate-600 mb-2"></i>
+                        <p class="text-sm text-slate-400">Belum ada gambar yang dipilih. Unggah gambar di atas untuk mulai mengompresi.</p>
+                    </div>
+                `;
+          return;
+        }
+
+        summaryBox.classList.remove("hidden");
+        badge.classList.remove("hidden");
+        badge.textContent = imageItems.length;
+
+        let totalOrig = 0;
+        let totalComp = 0;
+
+        container.innerHTML = imageItems
+          .map((item) => {
+            const origSize = item.file.size;
+            const compSize = item.compBlob ? item.compBlob.size : origSize;
+            totalOrig += origSize;
+            totalComp += compSize;
+
+            const diff = origSize - compSize;
+            const pct = origSize > 0 ? Math.round((diff / origSize) * 100) : 0;
+            const badgeColor =
+              pct > 0
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                : "bg-slate-800 text-slate-400 border-slate-700";
+            const pctText = pct > 0 ? `-${pct}%` : "Optimal";
+
+            const formatBadge = (
+              item.compBlob.type.split("/")[1] || "img"
+            ).toUpperCase();
+
+            return `
+                    <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition shadow-md">
+                        <div class="flex items-center gap-4 min-w-0 w-full sm:w-auto">
+                            <div onclick="openCompareModal('${item.id}')" class="relative w-16 h-16 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0 cursor-pointer group">
+                                <img src="${item.compUrl}" alt="${item.outName}" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-magnifying-glass-plus text-white text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-semibold text-sm text-white truncate" title="${item.outName}">${item.outName}</h4>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">${formatBadge}</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    ${item.origWidth}×${item.origHeight}px <i class="fa-solid fa-arrow-right mx-1 text-[10px]"></i> ${item.compWidth}×${item.compHeight}px
+                                </p>
+                                <div class="flex items-center gap-2 mt-1.5 text-xs">
+                                    <span class="text-slate-400 line-through">${formatBytes(origSize)}</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-600"></i>
+                                    <span class="font-bold text-emerald-400">${formatBytes(compSize)}</span>
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}">${pctText}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-slate-800 pt-3 sm:pt-0">
+                            <button onclick="openCompareModal('${item.id}')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition" title="Bandingkan Sebelum & Sesudah">
+                                <i class="fa-solid fa-eye"></i> <span class=" sm:hidden md:inline">Bandingkan</span>
+                            </button>
+                            <a href="${item.compUrl}" download="${item.outName}" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-600/20 transition">
+                                <i class="fa-solid fa-download"></i> Unduh
+                            </a>
+                            <button onclick="removeImageItem('${item.id}')" class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition" title="Hapus">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+
+        // Update Summary Stats
+        const totalSaved = Math.max(0, totalOrig - totalComp);
+        const totalPct =
+          totalOrig > 0 ? Math.round((totalSaved / totalOrig) * 100) : 0;
+        document.getElementById("img-total-orig").textContent =
+          formatBytes(totalOrig);
+        document.getElementById("img-total-comp").textContent =
+          formatBytes(totalComp);
+        document.getElementById("img-total-saved").textContent =
+          `${formatBytes(totalSaved)} (-${totalPct}%)`;
+      }
+
+      function removeImageItem(id) {
+        const idx = imageItems.findIndex((x) => x.id === id);
+        if (idx !== -1) {
+          URL.revokeObjectURL(imageItems[idx].origUrl);
+          if (imageItems[idx].compUrl)
+            URL.revokeObjectURL(imageItems[idx].compUrl);
+          imageItems.splice(idx, 1);
+          renderImageList();
+        }
+      }
+
+      function clearAllImages() {
+        imageItems.forEach((item) => {
+          URL.revokeObjectURL(item.origUrl);
+          if (item.compUrl) URL.revokeObjectURL(item.compUrl);
+        });
+        imageItems = [];
+        renderImageList();
+        showToast("Daftar gambar telah dibersihkan.", "info");
+      }
+
+      async function downloadAllImagesZip() {
+        if (imageItems.length === 0) return;
+        showToast("Mengemas seluruh gambar ke dalam file ZIP...", "info");
+
+        const zip = new JSZip();
+        imageItems.forEach((item, index) => {
+          zip.file(item.outName, item.compBlob);
+        });
+
+        const zipBlob = await zip.generateAsync({
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 },
+        });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `KompresKita_Gambar_${Date.now()}.zip`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast("Berhasil mengunduh arsip ZIP gambar!", "success");
+      }
+
+      // Image Comparison Modal
+      function openCompareModal(id) {
+        const item = imageItems.find((x) => x.id === id);
+        if (!item) return;
+
+        document.getElementById("modal-title").textContent = item.outName;
+        document.getElementById("modal-orig-img").src = item.origUrl;
+        document.getElementById("modal-comp-img").src = item.compUrl;
+        document.getElementById("modal-orig-size").textContent = formatBytes(
+          item.file.size,
+        );
+        document.getElementById("modal-comp-size").textContent = formatBytes(
+          item.compBlob.size,
+        );
+        document.getElementById("modal-orig-dim").textContent =
+          `Dimensi: ${item.origWidth} × ${item.origHeight} px (${item.file.type})`;
+        document.getElementById("modal-comp-dim").textContent =
+          `Dimensi: ${item.compWidth} × ${item.compHeight} px (${item.compBlob.type})`;
+
+        const savedPct = Math.round(
+          ((item.file.size - item.compBlob.size) / item.file.size) * 100,
+        );
+        document.getElementById("modal-comp-badge").textContent =
+          savedPct > 0 ? `-${savedPct}%` : "0%";
+
+        const dlBtn = document.getElementById("modal-download-btn");
+        dlBtn.href = item.compUrl;
+        dlBtn.download = item.outName;
+
+        document.getElementById("compare-modal").classList.remove("hidden");
+      }
+
+      function closeCompareModal() {
+        document.getElementById("compare-modal").classList.add("hidden");
+      }
+
+      // ==========================================
+      // 2. PDF COMPRESSION MODULE
+      // ==========================================
+      let currentPdfFile = null;
+      let currentPdfDoc = null;
+      let compressedPdfUrl = null;
+
+      function applyPdfPreset(preset) {
+        const qSlider = document.getElementById("pdf-quality-slider");
+        const sSlider = document.getElementById("pdf-scale-slider");
+        const qLabel = document.getElementById("pdf-quality-label");
+        const sLabel = document.getElementById("pdf-scale-label");
+
+        if (preset === "extreme") {
+          qSlider.value = 45;
+          sSlider.value = 0.95;
+        } else if (preset === "recommended") {
+          qSlider.value = 65;
+          sSlider.value = 1.25;
+        } else if (preset === "high") {
+          qSlider.value = 82;
+          sSlider.value = 1.55;
+        }
+        qLabel.textContent = qSlider.value + "%";
+        sLabel.textContent = sSlider.value + "x";
+      }
+
+      async function handlePdfFile(file) {
+        if (!file || file.type !== "application/pdf") {
+          showToast("Harap pilih file berformat PDF yang valid.", "error");
+          return;
+        }
+
+        currentPdfFile = file;
+        document.getElementById("pdf-work-card").classList.remove("hidden");
+        document.getElementById("pdf-result-box").classList.add("hidden");
+        document.getElementById("pdf-filename").textContent = file.name;
+        document.getElementById("pdf-orig-size").textContent =
+          `Ukuran Asli: ${formatBytes(file.size)}`;
+        document.getElementById("pdf-page-count").textContent =
+          "Membaca dokumen...";
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          currentPdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer })
+            .promise;
+          document.getElementById("pdf-page-count").textContent =
+            `${currentPdfDoc.numPages} Halaman`;
+
+          // Render first page preview
+          const page = await currentPdfDoc.getPage(1);
+          const viewport = page.getViewport({ scale: 1.0 });
+          const canvas = document.getElementById("pdf-preview-canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          showToast("Dokumen PDF siap dikompresi!", "info");
+        } catch (err) {
+          console.error(err);
+          showToast(
+            "Gagal membaca file PDF. Pastikan file tidak diproteksi sandi.",
+            "error",
+          );
+        }
+      }
+
+      async function startPdfCompression() {
+        if (!currentPdfDoc || !currentPdfFile) return;
+
+        const btn = document.getElementById("btn-compress-pdf");
+        const progressBox = document.getElementById("pdf-progress-box");
+        const progressBar = document.getElementById("pdf-progress-bar");
+        const progressStatus = document.getElementById("pdf-progress-status");
+        const progressPercent = document.getElementById("pdf-progress-percent");
+        const resultBox = document.getElementById("pdf-result-box");
+
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+        progressBox.classList.remove("hidden");
+        resultBox.classList.add("hidden");
+
+        try {
+          const quality =
+            parseInt(document.getElementById("pdf-quality-slider").value) / 100;
+          const scale = parseFloat(
+            document.getElementById("pdf-scale-slider").value,
+          );
+          const numPages = currentPdfDoc.numPages;
+
+          const { jsPDF } = window.jspdf;
+          let pdfOut = null;
+
+          for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            progressStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengompresi halaman ${pageNum} dari ${numPages}...`;
+            const pct = Math.round(((pageNum - 1) / numPages) * 100);
+            progressBar.style.width = `${pct}%`;
+            progressPercent.textContent = `${pct}%`;
+
+            const page = await currentPdfDoc.getPage(pageNum);
+            const origViewport = page.getViewport({ scale: 1.0 });
+            const renderViewport = page.getViewport({ scale: scale });
+
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = renderViewport.width;
+            tempCanvas.height = renderViewport.height;
+            const ctx = tempCanvas.getContext("2d");
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            await page.render({ canvasContext: ctx, viewport: renderViewport })
+              .promise;
+            const imgData = tempCanvas.toDataURL("image/jpeg", quality);
+
+            const orientation =
+              origViewport.width > origViewport.height ? "l" : "p";
+
+            if (pageNum === 1) {
+              pdfOut = new jsPDF({
+                orientation: orientation,
+                unit: "pt",
+                format: [origViewport.width, origViewport.height],
+                compress: true,
+              });
+            } else {
+              pdfOut.addPage(
+                [origViewport.width, origViewport.height],
+                orientation,
+              );
+            }
+
+            pdfOut.addImage(
+              imgData,
+              "JPEG",
+              0,
+              0,
+              origViewport.width,
+              origViewport.height,
+              undefined,
+              "FAST",
+            );
+
+            // Allow UI thread to breathe
+            await new Promise((r) => setTimeout(r, 15));
+          }
+
+          progressBar.style.width = "100%";
+          progressPercent.textContent = "100%";
+
+          const outBlob = pdfOut.output("blob");
+          if (compressedPdfUrl) URL.revokeObjectURL(compressedPdfUrl);
+
+          let finalBlob = outBlob;
+          let noteText = "PDF berhasil diperkecil dan siap diunduh.";
+
+          if (outBlob.size >= currentPdfFile.size) {
+            noteText =
+              "Catatan: PDF asli Anda sudah sangat optimal (berbasis teks murni). Anda dapat menurunkan slider kualitas ke Mode Ekstrem jika ingin ukuran lebih kecil.";
+          }
+
+          compressedPdfUrl = URL.createObjectURL(finalBlob);
+
+          const origSize = currentPdfFile.size;
+          const newSize = finalBlob.size;
+          const savedBytes = origSize - newSize;
+          const savedPct = Math.round((savedBytes / origSize) * 100);
+
+          document.getElementById("pdf-res-before").textContent =
+            formatBytes(origSize);
+          document.getElementById("pdf-res-after").textContent =
+            formatBytes(newSize);
+          document.getElementById("pdf-res-saved").textContent =
+            savedPct > 0 ? `-${savedPct}% (${formatBytes(savedBytes)})` : `0%`;
+          document.getElementById("pdf-res-note").textContent = noteText;
+
+          const dlLink = document.getElementById("pdf-download-link");
+          dlLink.href = compressedPdfUrl;
+          const baseName = currentPdfFile.name.replace(/\.pdf$/i, "");
+          dlLink.download = `${baseName}-kompres.pdf`;
+
+          resultBox.classList.remove("hidden");
+          showToast("Kompresi PDF selesai!", "success");
+        } catch (error) {
+          console.error(error);
+          showToast("Terjadi kesalahan saat mengompresi PDF.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("opacity-50", "cursor-not-allowed");
+          setTimeout(() => progressBox.classList.add("hidden"), 600);
+        }
+      }
+
+      // ==========================================
+      // 3. ZIP ARCHIVER & CODE MINIFIER MODULE
+      // ==========================================
+      let zipQueue = [];
+
+      function handleZipFiles(files) {
+        const arr = Array.from(files);
+        arr.forEach((file) => {
+          zipQueue.push({
+            id:
+              "zip-" +
+              Date.now() +
+              "-" +
+              Math.random().toString(36).substring(2, 6),
+            file,
+          });
+        });
+        renderZipQueue();
+        showToast(
+          `${arr.length} file ditambahkan ke daftar arsip ZIP.`,
+          "info",
+        );
+        document.getElementById("zip-file-input").value = "";
+      }
+
+      function renderZipQueue() {
+        const listEl = document.getElementById("zip-file-list");
+        const badge = document.getElementById("badge-count-zip");
+
+        if (zipQueue.length === 0) {
+          badge.classList.add("hidden");
+          listEl.innerHTML = `<div class="text-center py-6 text-xs text-slate-500">Belum ada file di dalam daftar antrean ZIP.</div>`;
+          document.getElementById("zip-total-orig").textContent = "0 KB";
+          document.getElementById("zip-result-stat").classList.add("hidden");
+          return;
+        }
+
+        badge.classList.remove("hidden");
+        badge.textContent = zipQueue.length;
+
+        let totalBytes = 0;
+        listEl.innerHTML = zipQueue
+          .map((item) => {
+            totalBytes += item.file.size;
+            return `
+                    <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <i class="fa-regular fa-file-lines text-amber-400"></i>
+                            <span class="text-slate-200 font-medium truncate">${item.file.name}</span>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="text-slate-400">${formatBytes(item.file.size)}</span>
+                            <button onclick="removeZipItem('${item.id}')" class="text-slate-500 hover:text-rose-400">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+
+        document.getElementById("zip-total-orig").textContent =
+          formatBytes(totalBytes);
+      }
+
+      function removeZipItem(id) {
+        zipQueue = zipQueue.filter((x) => x.id !== id);
+        renderZipQueue();
+      }
+
+      function clearZipFiles() {
+        zipQueue = [];
+        renderZipQueue();
+      }
+
+      function minifyStringContent(text, ext) {
+        try {
+          if (ext === "json") {
+            return JSON.stringify(JSON.parse(text));
+          } else if (ext === "css") {
+            return text
+              .replace(/\/\*[\s\S]*?\*\//g, "")
+              .replace(/\s+/g, " ")
+              .replace(/\s*([{}:;,>+~])\s*/g, "$1")
+              .replace(/;}/g, "}")
+              .trim();
+          } else if (
+            ext === "html" ||
+            ext === "htm" ||
+            ext === "svg" ||
+            ext === "xml"
+          ) {
+            return text
+              .replace(/<!--[\s\S]*?-->/g, "")
+              .replace(/>\s+</g, "><")
+              .replace(/\s{2,}/g, " ")
+              .trim();
+          } else if (ext === "js") {
+            return text
+              .replace(/\/\*[\s\S]*?\*\//g, "")
+              .replace(/^\s*\/\/.*$/gm, "")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+        } catch (e) {
+          return text;
+        }
+        return text;
+      }
+
+      async function generateZipArchive() {
+        if (zipQueue.length === 0) {
+          showToast("Tambahkan minimal 1 file terlebih dahulu.", "error");
+          return;
+        }
+
+        const zip = new JSZip();
+        const level = parseInt(document.getElementById("zip-level").value) || 9;
+        const autoMinify = document.getElementById("zip-auto-minify").checked;
+        const archiveNameInput =
+          document.getElementById("zip-archive-name").value.trim() ||
+          "Arsip_KompresKita";
+
+        const progressWrapper = document.getElementById("zip-progress-wrapper");
+        const progressBar = document.getElementById("zip-progress-bar");
+        const progressText = document.getElementById("zip-progress-text");
+        progressWrapper.classList.remove("hidden");
+
+        for (const item of zipQueue) {
+          const ext = (item.file.name.split(".").pop() || "").toLowerCase();
+          if (
+            autoMinify &&
+            ["json", "css", "html", "htm", "svg", "xml"].includes(ext)
+          ) {
+            const rawText = await item.file.text();
+            const minified = minifyStringContent(rawText, ext);
+            zip.file(item.file.name, minified);
+          } else {
+            zip.file(item.file.name, item.file);
+          }
+        }
+
+        const zipBlob = await zip.generateAsync(
+          {
+            type: "blob",
+            compression: "DEFLATE",
+            compressionOptions: { level },
+          },
+          (metadata) => {
+            const pct = Math.round(metadata.percent);
+            progressBar.style.width = `${pct}%`;
+            progressText.textContent = `${pct}%`;
+          },
+        );
+
+        setTimeout(() => progressWrapper.classList.add("hidden"), 500);
+
+        document.getElementById("zip-result-stat").classList.remove("hidden");
+        document.getElementById("zip-total-after").textContent = formatBytes(
+          zipBlob.size,
+        );
+
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${archiveNameInput}.zip`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        showToast("Arsip ZIP berhasil dibuat dan diunduh!", "success");
+      }
+
+      // Code Minifier Functions
+      let currentCodeFilename = "kode-kompres.txt";
+
+      async function loadCodeFile(file) {
+        if (!file) return;
+        currentCodeFilename = file.name;
+        const text = await file.text();
+        document.getElementById("minify-input").value = text;
+
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        const select = document.getElementById("minify-type");
+        if (["json", "css", "html", "js"].includes(ext)) {
+          select.value = ext;
+        } else {
+          select.value = "auto";
+        }
+        updateCodeStats();
+        showToast(`File ${file.name} berhasil dimuat.`, "info");
+      }
+
+      function insertSampleCode() {
+        const sample = `{\n  "aplikasi": "KompresKita Pro",\n  "versi": "2.0.0",\n  "privasi_lokal": true,\n  "fitur_utama": [\n    "Kompresi Gambar Batch (WEBP, JPEG, PNG)",\n    "Kompresi Dokumen PDF Multi-Halaman",\n    "Pembuat Arsip ZIP DEFLATE Maksimal",\n    "Minifikasi Kode JSON, HTML, CSS & JS"\n  ]\n}`;
+        document.getElementById("minify-input").value = sample;
+        document.getElementById("minify-type").value = "json";
+        currentCodeFilename = "data-sampel.json";
+        updateCodeStats();
+      }
+
+      function updateCodeStats(origLen = null, minLen = null) {
+        const input = document.getElementById("minify-input").value;
+        const byteLen = new Blob([input]).size;
+        const oSize = origLen !== null ? origLen : byteLen;
+        const mSize = minLen !== null ? minLen : byteLen;
+
+        document.getElementById("code-orig-size").textContent =
+          formatBytes(oSize);
+        document.getElementById("code-min-size").textContent =
+          formatBytes(mSize);
+        const saved =
+          oSize > 0
+            ? Math.max(0, Math.round(((oSize - mSize) / oSize) * 100))
+            : 0;
+        document.getElementById("code-saved-badge").textContent = `-${saved}%`;
+      }
+
+      function processMinifyCode() {
+        const textarea = document.getElementById("minify-input");
+        const raw = textarea.value;
+        if (!raw.trim()) {
+          showToast("Masukkan atau muat teks/kode terlebih dahulu.", "error");
+          return;
+        }
+
+        const origBytes = new Blob([raw]).size;
+        let type = document.getElementById("minify-type").value;
+
+        if (type === "auto") {
+          const trimmed = raw.trim();
+          if (trimmed.startsWith("{") || trimmed.startsWith("[")) type = "json";
+          else if (trimmed.startsWith("<")) type = "html";
+          else if (
+            trimmed.includes("{") &&
+            trimmed.includes(":") &&
+            trimmed.includes(";")
+          )
+            type = "css";
+          else type = "js";
+        }
+
+        const minified = minifyStringContent(raw, type);
+        textarea.value = minified;
+        const newBytes = new Blob([minified]).size;
+
+        updateCodeStats(origBytes, newBytes);
+        showToast("Kode berhasil diperkecil (minified)!", "success");
+      }
+
+      function copyMinifiedCode() {
+        const textarea = document.getElementById("minify-input");
+        if (!textarea.value) return;
+        textarea.select();
+        document.execCommand("copy");
+        showToast("Kode tersalin ke papan klip (Clipboard)!", "success");
+      }
+
+      function downloadMinifiedFile() {
+        const content = document.getElementById("minify-input").value;
+        if (!content.trim()) {
+          showToast("Tidak ada konten untuk diunduh.", "error");
+          return;
+        }
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `min-${currentCodeFilename}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }
+
+      // Initialize Dropzones on Window Load
+      window.addEventListener("DOMContentLoaded", () => {
+        setupDropzone("img-dropzone", handleImageFiles);
+        setupDropzone("pdf-dropzone", (files) => handlePdfFile(files[0]));
+        setupDropzone("zip-dropzone", handleZipFiles);
+      });
+    </script>
+  </body>
+</html>
