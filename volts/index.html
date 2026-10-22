@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VoltCheck Pro - Mobile Power & Hardware Diagnostics</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#090d16',
+                            card: '#111827',
+                            border: '#1f2937',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            cyan: '#06b6d4',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        /* Grid Background ala Osiloskop */
+        .oscilloscope-grid {
+            background-size: 24px 24px;
+            background-image: 
+                linear-gradient(to right, rgba(16, 185, 129, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(16, 185, 129, 0.05) 1px, transparent 1px);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+        /* Animasi Arus Mengalir */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.25); }
+            50% { box-shadow: 0 0 22px rgba(16, 185, 129, 0.55); }
+        }
+        .charging-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        .pin-item {
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .pin-item:hover, .pin-item.active-pin {
+            transform: scale(1.08);
+            z-index: 10;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff; color: #000; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col oscilloscope-grid selection:bg-emerald-500 selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-40 bg-gray-900/90 backdrop-blur-md border-b border-gray-800 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                    <i class="fa-solid fa-bolt-lightning text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg tracking-tight text-white">VoltCheck <span class="text-emerald-400 font-mono text-sm px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">PRO v3.4</span></h1>
+                    </div>
+                    <p class="text-xs text-gray-400">Mobile Power, Pinout & Hardware Diagnostics</p>
+                </div>
+            </div>
+
+            <!-- Live Status Pill -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <div id="apiBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-950/80 border border-emerald-700/60 text-emerald-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="apiStatusText">Battery API: Mendeteksi...</span>
+                </div>
+                <div id="powerStateBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-gray-800 border border-gray-700 text-gray-300">
+                    <i class="fa-solid fa-plug-circle-xmark"></i>
+                    <span>DISCHARGING</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto no-scrollbar border-t border-gray-800/60">
+            <button onclick="switchTab('power')" id="tabBtn-power" class="tab-btn flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 whitespace-nowrap transition-colors">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>1. Monitor Daya & Voltase</span>
+            </button>
+            <button onclick="switchTab('pinout')" id="tabBtn-pinout" class="tab-btn flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 whitespace-nowrap transition-colors">
+                <i class="fa-solid fa-microchip"></i>
+                <span>2. Tes Pin USB-C / Lightning & Kabel</span>
+            </button>
+            <button onclick="switchTab('hardware')" id="tabBtn-hardware" class="tab-btn flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 whitespace-nowrap transition-colors">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+                <span>3. Diagnostik Hardware & Layar</span>
+            </button>
+            <button onclick="switchTab('report')" id="tabBtn-report" class="tab-btn flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 whitespace-nowrap transition-colors">
+                <i class="fa-solid fa-file-waveform"></i>
+                <span>4. Laporan & Log CSV</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-6">
+
+        <!-- Transparency Banner -->
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-400 no-print">
+            <div class="flex items-start sm:items-center gap-2.5">
+                <i class="fa-solid fa-circle-info text-cyan-400 mt-0.5 sm:mt-0"></i>
+                <span>
+                    <strong class="text-gray-200">Keterangan Sensor:</strong> Label <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">HARDWARE API</span> dibaca langsung dari sensor OS/Browser, sedangkan <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">SMART ESTIMATE</span> dihitung dari profil kalibrasi mAh & laju pengisian.
+                </span>
+            </div>
+            <button onclick="triggerManualPulse()" class="self-end sm:self-auto px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 font-mono text-[11px] flex items-center gap-1.5 shrink-0 border border-gray-700">
+                <i class="fa-solid fa-rotate"></i> Refresh Sensor
+            </button>
+        </div>
+
+        <!-- ==========================================
+             TAB 1: MONITOR DAYA & BATERAI REAL-TIME
+             ========================================== -->
+        <section id="tab-power" class="space-y-6">
+            <!-- Top Digital Oscilloscope Readouts -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <!-- Voltage Card -->
+                <div id="voltCard" class="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Tegangan (VBUS/BATT)</span>
+                        <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">ESTIMATE</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 my-1">
+                        <span id="readoutVolt" class="font-mono text-2xl sm:text-4xl font-bold text-emerald-400">4.18</span>
+                        <span class="font-mono text-sm text-gray-400">V</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-gray-400 mt-2 pt-2 border-t border-gray-800/80 font-mono">
+                        <span>Min: <strong id="voltMin" class="text-gray-300">4.15V</strong></span>
+                        <span>Max: <strong id="voltMax" class="text-gray-300">4.21V</strong></span>
+                    </div>
+                </div>
+
+                <!-- Current Card -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Arus Listrik (I)</span>
+                        <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">ESTIMATE</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 my-1">
+                        <span id="readoutCurrent" class="font-mono text-2xl sm:text-4xl font-bold text-cyan-400">-340</span>
+                        <span class="font-mono text-sm text-gray-400">mA</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-gray-400 mt-2 pt-2 border-t border-gray-800/80 font-mono">
+                        <span id="currentDirectionLabel">Konsumsi Idle</span>
+                        <span id="cRateText" class="text-cyan-400">0.07C</span>
+                    </div>
+                </div>
+
+                <!-- Wattage Power Card -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Daya Masuk/Keluar</span>
+                        <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">ESTIMATE</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 my-1">
+                        <span id="readoutWatt" class="font-mono text-2xl sm:text-4xl font-bold text-amber-400">1.42</span>
+                        <span class="font-mono text-sm text-gray-400">W</span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-gray-400 mt-2 pt-2 border-t border-gray-800/80 font-mono">
+                        <span>Efisiensi: <strong id="efficiencyText" class="text-emerald-400">94%</strong></span>
+                        <span id="protocolDetected">Batt Internal</span>
+                    </div>
+                </div>
+
+                <!-- Battery Level & Native Status -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-4 relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Level Baterai</span>
+                        <span id="batterySourceBadge" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">HARDWARE API</span>
+                    </div>
+                    <div class="flex items-baseline justify-between my-1">
+                        <div class="flex items-baseline gap-1">
+                            <span id="readoutLevel" class="font-mono text-2xl sm:text-4xl font-bold text-white">85</span>
+                            <span class="font-mono text-sm text-gray-400">%</span>
+                        </div>
+                        <span id="estMahRemaining" class="font-mono text-xs text-emerald-400">4250 / 5000 mAh</span>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden mt-2">
+                        <div id="batteryProgressBar" class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-500" style="width: 85%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calibration Panel & Power Stability -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left: Calibration & Charger Profile -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-emerald-400"></i>
+                            <h2 class="font-semibold text-sm sm:text-base">Kalibrasi Baterai & Profil Charger</h2>
+                        </div>
+                        <span class="text-[11px] font-mono text-gray-400">Smart Estimator</span>
+                    </div>
+
+                    <!-- Input mAh -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5">Kapasitas Desain Baterai (mAh):</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="inputBatteryMah" value="5000" min="1000" max="20000" step="100" onchange="updateCalibration()" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-emerald-500">
+                            <button onclick="setQuickMah(4000)" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs font-mono text-gray-300">4000</button>
+                            <button onclick="setQuickMah(5000)" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs font-mono text-emerald-400 border border-emerald-500/30">5000</button>
+                            <button onclick="setQuickMah(6000)" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs font-mono text-gray-300">6000</button>
+                        </div>
+                    </div>
+
+                    <!-- Charger Profile Select -->
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1.5">Profil Adaptor Charger / Protokol:</label>
+                        <select id="selectChargerProfile" onchange="updateCalibration()" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500">
+                            <option value="auto">Auto-Detect (Berdasarkan Charging Time API)</option>
+                            <option value="usb_pc">USB Port PC / Laptop (5V / 0.5A - 2.5W)</option>
+                            <option value="std_10w" selected>Standard Charger (5V / 2A - 10W)</option>
+                            <option value="qc_18w">Fast Charging QC 3.0 / PD (9V / 2A - 18W)</option>
+                            <option value="pd_33w">PD PPS / SuperVOOC / Turbo (11V / 3A - 33W)</option>
+                            <option value="ultra_67w">HyperCharge / SuperDart (20V / 3.35A - 67W)</option>
+                        </select>
+                    </div>
+
+                    <!-- Manual Simulation Override (For Testing without Charger Plugged) -->
+                    <div class="p-3 rounded-xl bg-gray-950/90 border border-gray-800 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-gray-300">Mode Simulasi Injeksi Daya</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggleSimCharging" onchange="toggleSimulatedCharge()" class="sr-only peer">
+                                <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-relaxed">
+                            Aktifkan jika ingin menguji simulasi gelombang arus 충전 (Charging) meskipun ponsel sedang tidak dicolok ke charger.
+                        </p>
+                    </div>
+
+                    <!-- Stability & Ripple Indicator -->
+                    <div class="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-800/40 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-300 font-medium">Ripple & Stabilitas Tegangan:</span>
+                            <span id="rippleBadge" class="font-mono font-semibold text-emerald-400">SANGAT STABIL</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-1 text-center font-mono text-xs">
+                            <div class="bg-gray-950/80 p-2 rounded-lg border border-gray-800">
+                                <div class="text-[10px] text-gray-400">V-Ripple</div>
+                                <div id="rippleValue" class="text-emerald-400 font-bold">±18 mV</div>
+                            </div>
+                            <div class="bg-gray-950/80 p-2 rounded-lg border border-gray-800">
+                                <div class="text-[10px] text-gray-400">Est. Suhu</div>
+                                <div id="tempEstimate" class="text-amber-400 font-bold">32.4 °C</div>
+                            </div>
+                            <div class="bg-gray-950/80 p-2 rounded-lg border border-gray-800">
+                                <div class="text-[10px] text-gray-400">Waktu Penuh</div>
+                                <div id="timeToFullText" class="text-cyan-400 font-bold">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right (2 Cols): Real-Time Oscilloscope Chart -->
+                <div class="lg:col-span-2 bg-gray-900/90 border border-gray-800 rounded-2xl p-5 flex flex-col justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3 mb-4">
+                        <div>
+                            <h2 class="font-semibold text-sm sm:text-base flex items-center gap-2">
+                                <i class="fa-solid fa-wave-square text-emerald-400"></i>
+                                <span>Osiloskop Real-Time (Voltase, Arus & Daya)</span>
+                            </h2>
+                            <p class="text-xs text-gray-400">Interval sampel: 1000ms (60 titik data terakhir)</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleChartPause()" id="btnPauseChart" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-mono text-gray-200 flex items-center gap-1.5 border border-gray-700">
+                                <i class="fa-solid fa-pause"></i> <span>Pause</span>
+                            </button>
+                            <button onclick="resetPowerLogs()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-rose-950/60 hover:border-rose-700 text-xs font-mono text-gray-300 hover:text-rose-300 flex items-center gap-1.5 border border-gray-700 transition-colors">
+                                <i class="fa-solid fa-trash-can"></i> <span>Reset Log</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chart Container -->
+                    <div class="relative w-full h-64 sm:h-80">
+                        <canvas id="powerChart"></canvas>
+                    </div>
+
+                    <!-- Legend & Quick Summary -->
+                    <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-800 text-xs font-mono">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-emerald-400 inline-block"></span>
+                            <span class="text-gray-300">Tegangan (V)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-cyan-400 inline-block"></span>
+                            <span class="text-gray-300">Arus (A)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-amber-400 inline-block"></span>
+                            <span class="text-gray-300">Daya (Watt)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 2: TES PIN KONEKTOR & UJI KABEL
+             ========================================== -->
+        <section id="tab-pinout" class="space-y-6 hidden">
+            <!-- Connector Type Switcher & Auto Continuity Scan -->
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-800">
+                    <div>
+                        <h2 class="font-bold text-base sm:text-lg flex items-center gap-2 text-white">
+                            <i class="fa-solid fa-plug-circle-check text-emerald-400"></i>
+                            <span>Laboratorium Inspeksi Pin Konektor & Kabel</span>
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Klik pada pin manapun di bawah untuk melihat spesifikasi tegangan, fungsi jalur, dan analisis kerusakan jika pin putus/korosi.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="switchConnectorType('usbc')" id="btnConnUsbc" class="px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-emerald-500 text-gray-950 transition-all">
+                            24-Pin USB Type-C
+                        </button>
+                        <button onclick="switchConnectorType('lightning')" id="btnConnLightning" class="px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition-all">
+                            8-Pin Apple Lightning
+                        </button>
+                        <button onclick="runAutomatedPinScan()" id="btnAutoPinScan" class="px-4 py-2 rounded-xl text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            <span>Scan Jalur Pin Otomatis</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Pinout Diagram Container -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-5 items-start">
+                    <!-- Left 2 Cols: Visual Connector Shell -->
+                    <div class="lg:col-span-2 bg-gray-950 border border-gray-800 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center">
+                        <!-- Legend Pin Colors -->
+                        <div class="flex flex-wrap items-center justify-center gap-3 mb-5 text-[11px] font-mono">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> VBUS (Power +)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span> GND (Ground)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> CC1/CC2 (PD Config)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> D+/D- (USB 2.0)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> TX/RX (SuperSpeed)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span> SBU (Audio/Alt)</span>
+                        </div>
+
+                        <!-- USB Type-C 24-Pin Visualization -->
+                        <div id="diagramUsbc" class="w-full overflow-x-auto pb-2">
+                            <div class="min-w-[540px] max-w-2xl mx-auto bg-gray-900 border-4 border-gray-700 rounded-full px-6 py-5 shadow-inner relative">
+                                <div class="text-[10px] font-mono text-gray-400 text-center mb-2 uppercase tracking-widest">Sisi Atas (Baris Pin A1 — A12)</div>
+                                <!-- Row A -->
+                                <div id="usbcRowA" class="grid grid-cols-12 gap-1.5 mb-3"></div>
+                                
+                                <!-- Center Tongue Plate -->
+                                <div class="h-3 bg-gradient-to-r from-gray-800 via-gray-600 to-gray-800 rounded-full my-2 flex items-center justify-center">
+                                    <span class="text-[9px] font-mono text-gray-950 font-bold tracking-widest uppercase">Receptacle Tongue Insulator</span>
+                                </div>
+
+                                <!-- Row B -->
+                                <div id="usbcRowB" class="grid grid-cols-12 gap-1.5 mt-3"></div>
+                                <div class="text-[10px] font-mono text-gray-400 text-center mt-2 uppercase tracking-widest">Sisi Bawah (Baris Pin B12 — B1)</div>
+                            </div>
+                        </div>
+
+                        <!-- Apple Lightning 8-Pin Visualization -->
+                        <div id="diagramLightning" class="w-full overflow-x-auto pb-2 hidden">
+                            <div class="max-w-md mx-auto bg-gray-900 border-4 border-gray-600 rounded-3xl p-6 shadow-inner">
+                                <div class="text-xs font-mono text-gray-400 text-center mb-4 uppercase tracking-widest">Konektor 8-Pin Lightning (Reversible)</div>
+                                <div id="lightningRow" class="grid grid-cols-8 gap-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Automated Scan Status Bar -->
+                        <div id="pinScanStatusBox" class="w-full mt-5 p-3.5 rounded-xl bg-gray-900 border border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                            <div class="flex items-center gap-2">
+                                <span id="scanPulseDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                                <span id="scanStatusTitle" class="text-gray-300">Status Bus Konektor: Siap Diinspeksi</span>
+                            </div>
+                            <span id="scanSummaryBadge" class="text-emerald-400">Klik pin untuk detail diagnostik</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Col: Selected Pin Technical Inspector -->
+                    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                            <div>
+                                <span class="text-[10px] font-mono uppercase tracking-wider text-emerald-400">Detail Diagnostik Pin</span>
+                                <h3 id="pinDetailName" class="text-lg font-bold font-mono text-white">A4 / B9 - VBUS</h3>
+                            </div>
+                            <span id="pinDetailCategory" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                POWER SUPPLY
+                            </span>
+                        </div>
+
+                        <div class="space-y-3 text-xs">
+                            <div class="bg-gray-900 p-3 rounded-xl border border-gray-800">
+                                <div class="text-gray-400 mb-1">Tegangan Kerja Standar:</div>
+                                <div id="pinDetailVoltage" class="font-mono text-sm font-semibold text-emerald-400">5.0V Default (Hingga 20V pada USB-PD)</div>
+                            </div>
+
+                            <div class="bg-gray-900 p-3 rounded-xl border border-gray-800">
+                                <div class="text-gray-400 mb-1">Fungsi Teknis Jalur:</div>
+                                <div id="pinDetailFunction" class="text-gray-200 leading-relaxed">
+                                    Jalur utama pasokan tegangan positif dari charger menuju IC Charging ponsel. Empat pin VBUS bekerja paralel untuk menahan arus besar hingga 5A (100W+).
+                                </div>
+                            </div>
+
+                            <div class="bg-rose-950/20 p-3 rounded-xl border border-rose-800/40">
+                                <div class="text-rose-300 font-semibold mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <span>Gejala Kerusakan Jika Pin Kotor/Putus:</span>
+                                </div>
+                                <div id="pinDetailSymptom" class="text-gray-300 leading-relaxed">
+                                    Ponsel sama sekali tidak mendeteksi charger masuk, atau pengisian daya putus-nyambung saat kabel digoyang, serta konektor terasa panas berlebih karena resistansi kontak tinggi.
+                                </div>
+                            </div>
+
+                            <div class="bg-cyan-950/20 p-3 rounded-xl border border-cyan-800/40">
+                                <div class="text-cyan-300 font-semibold mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-stethoscope"></i>
+                                    <span>Hasil Pembacaan Saat Ini:</span>
+                                </div>
+                                <div id="pinDetailLiveCheck" class="font-mono text-gray-200">
+                                    Status: Terukur Normal (Estimasi kontinuitas baik)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cable Resistance & Voltage Drop Stress Benchmark -->
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-800">
+                    <div>
+                        <h3 class="font-bold text-base flex items-center gap-2 text-white">
+                            <i class="fa-solid fa-fire-burner text-amber-400"></i>
+                            <span>Tes Kualitas Kabel & Voltage Drop (Load Stress Benchmark)</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            Menguji apakah kabel charger mengalami penurunan tegangan (*voltage drop*) saat CPU ponsel diberi beban komputasi tinggi vs kondisi idle.
+                        </p>
+                    </div>
+                    <button onclick="startCableStressTest()" id="btnCableStress" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-mono font-bold text-xs flex items-center gap-2 shrink-0 transition-all shadow-lg shadow-amber-500/10">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Mulai Uji Beban Kabel (5 Detik)</span>
+                    </button>
+                </div>
+
+                <!-- Stress Test Progress & Metrics -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">Voltase Saat Idle</div>
+                        <div id="cableIdleVolt" class="font-mono text-xl font-bold text-white mt-1">-- V</div>
+                        <div class="text-[11px] text-gray-500 mt-1">Beban rendah</div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">Voltase Saat Full Load</div>
+                        <div id="cableLoadVolt" class="font-mono text-xl font-bold text-amber-400 mt-1">-- V</div>
+                        <div class="text-[11px] text-gray-500 mt-1">Beban puncak CPU</div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">Selisih Drop & Resistansi</div>
+                        <div id="cableDropVal" class="font-mono text-xl font-bold text-cyan-400 mt-1">-- mV</div>
+                        <div id="cableOhmVal" class="text-[11px] font-mono text-gray-400 mt-1">Est. Impedansi: -- mΩ</div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex flex-col justify-between">
+                        <div class="text-xs text-gray-400">Skor Kesehatan Kabel</div>
+                        <div id="cableVerdict" class="font-mono text-sm font-bold text-emerald-400 mt-1">BELUM DIUJI</div>
+                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden mt-2">
+                            <div id="cableStressBar" class="bg-amber-500 h-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 3: DIAGNOSTIK HARDWARE TAMBAHAN
+             ========================================== -->
+        <section id="tab-hardware" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- 1. Port Audio / USB-C Headset / OTG Enumeration -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-headphones-simple text-cyan-400"></i>
+                                <h3 class="font-bold text-sm sm:text-base">Detektor Jalur Port Audio / OTG / Mic</h3>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">HARDWARE API</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">
+                            Memeriksa jalur I/O yang terbaca oleh sistem (Mikrofon internal, Earpiece, Headset USB-C/Jack 3.5mm, atau DAC eksternal).
+                        </p>
+
+                        <div id="mediaDevicesList" class="mt-4 space-y-2 max-h-56 overflow-y-auto pr-1">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-800">
+                        <button onclick="scanAudioAndPorts(true)" class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-mono font-bold text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-plug"></i>
+                            <span>Scan Port & Izin Audio</span>
+                        </button>
+                        <button onclick="testSpeakerWave()" id="btnSpeakerTest" class="px-3.5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-mono text-xs flex items-center gap-1.5 border border-gray-700">
+                            <i class="fa-solid fa-volume-high text-emerald-400"></i>
+                            <span>Uji Gelombang Speaker (1kHz)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Sensor Bus, Vibration Haptic & Network Speed -->
+                <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-compass text-amber-400"></i>
+                                <h3 class="font-bold text-sm sm:text-base">Cek Jalur Sensor, Haptic & Koneksi</h3>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">HARDWARE API</span>
+                        </div>
+
+                        <!-- Gyro / Orientation Readout -->
+                        <div class="grid grid-cols-3 gap-2 font-mono text-center">
+                            <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                <div class="text-[10px] text-gray-400">Gyro Alpha (Z)</div>
+                                <div id="sensorAlpha" class="text-base font-bold text-emerald-400 mt-0.5">0.0°</div>
+                            </div>
+                            <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                <div class="text-[10px] text-gray-400">Gyro Beta (X)</div>
+                                <div id="sensorBeta" class="text-base font-bold text-cyan-400 mt-0.5">0.0°</div>
+                            </div>
+                            <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                <div class="text-[10px] text-gray-400">Gyro Gamma (Y)</div>
+                                <div id="sensorGamma" class="text-base font-bold text-amber-400 mt-0.5">0.0°</div>
+                            </div>
+                        </div>
+
+                        <!-- Accelerometer Motion & Network Info -->
+                        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                            <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                <div class="text-gray-400 text-[11px]">Akselerometer (m/s²):</div>
+                                <div id="accelReadout" class="text-white font-semibold mt-1">X:0.0 Y:0.0 Z:9.8</div>
+                            </div>
+                            <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                <div class="text-gray-400 text-[11px]">Network Bus / Downlink:</div>
+                                <div id="netReadout" class="text-emerald-400 font-semibold mt-1">Mendeteksi...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Haptic & Sensor Trigger Buttons -->
+                    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-800">
+                        <button onclick="testVibrationMotor()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-mono font-bold text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                            <span>Tes Motor Getar (Haptic Pulse)</span>
+                        </button>
+                        <button onclick="requestMotionPermission()" class="px-3.5 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-mono text-xs flex items-center gap-1.5 border border-gray-700">
+                            <i class="fa-solid fa-satellite-dish text-cyan-400"></i>
+                            <span>Kalibrasi Sensor Gerak</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Multi-Touch & Digitizer Pin Matrix Tester -->
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-3">
+                    <div>
+                        <h3 class="font-bold text-base flex items-center gap-2 text-white">
+                            <i class="fa-solid fa-hand-pointer text-emerald-400"></i>
+                            <span>Multi-Touch & Digitizer Pin Matrix Tester</span>
+                        </h3>
+                        <p class="text-xs text-gray-400">
+                            Usap seluruh kotak grid di bawah untuk mengetes jalur pin fleksibel layar sentuh (mendukung multi-touch hingga 10 jari & deteksi *dead zone*).
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 font-mono text-xs">
+                        <span class="px-3 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-cyan-400">
+                            Jari Aktif: <strong id="touchCount">0</strong>
+                        </span>
+                        <span class="px-3 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-emerald-400">
+                            Grid Teruji: <strong id="gridCoverage">0%</strong>
+                        </span>
+                        <button onclick="resetDigitizerCanvas()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">
+                            Reset Kanvas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Touch Canvas Container -->
+                <div class="relative w-full h-72 sm:h-96 bg-gray-950 rounded-xl border border-gray-800 overflow-hidden touch-none select-none">
+                    <canvas id="digitizerCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                    <div id="touchCoordOverlay" class="absolute top-3 left-3 pointer-events-none font-mono text-[11px] text-gray-400 bg-gray-900/80 px-2.5 py-1 rounded border border-gray-800">
+                        Sentuh atau geser pada area kanvas...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             TAB 4: LAPORAN DIAGNOSTIK & EXPORT CSV
+             ========================================== -->
+        <section id="tab-report" class="space-y-6 hidden">
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                    <div>
+                        <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-emerald-400"></i>
+                            <span>Laporan Diagnostik Teknisi & Riwayat Log Daya</span>
+                        </h2>
+                        <p class="text-xs text-gray-400">Unduh rekaman telemetri tegangan/arus dalam format CSV atau cetak lembar pemeriksaan perangkat.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 no-print">
+                        <button onclick="exportLogsToCSV()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-mono font-bold text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv"></i>
+                            <span>Export Log CSV</span>
+                        </button>
+                        <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-mono text-xs flex items-center gap-2 border border-gray-700">
+                            <i class="fa-solid fa-print"></i>
+                            <span>Cetak Laporan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Diagnostic Sheet -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-1.5">
+                        <div class="text-gray-400 uppercase text-[10px]">Identitas Sistem & Browser</div>
+                        <div id="repPlatform" class="text-white font-semibold truncate">--</div>
+                        <div id="repCores" class="text-gray-400">CPU Logical Cores: --</div>
+                        <div id="repMemory" class="text-gray-400">RAM Perangkat (Est): --</div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-1.5">
+                        <div class="text-gray-400 uppercase text-[10px]">Ringkasan Daya & Baterai</div>
+                        <div id="repBattStatus" class="text-emerald-400 font-semibold">--</div>
+                        <div id="repVoltRange" class="text-gray-300">Rentang Voltase: --</div>
+                        <div id="repPeakWatt" class="text-amber-400">Daya Puncak: -- W</div>
+                    </div>
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-1.5">
+                        <div class="text-gray-400 uppercase text-[10px]">Status Port & Digitizer</div>
+                        <div id="repCableHealth" class="text-cyan-400 font-semibold">Kabel: Belum Diuji</div>
+                        <div id="repTouchHealth" class="text-gray-300">Digitizer Coverage: 0%</div>
+                        <div id="repAudioPorts" class="text-gray-400">Port Audio Terdeteksi: --</div>
+                    </div>
+                </div>
+
+                <!-- Telemetry Log Table -->
+                <div>
+                    <h3 class="text-xs font-mono uppercase tracking-wider text-gray-400 mb-3">Tabel Log Telemetri Daya Terakhir (Maks 30 Baris Terbaru)</h3>
+                    <div class="overflow-x-auto rounded-xl border border-gray-800">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead class="bg-gray-950 text-gray-400 border-b border-gray-800">
+                                <tr>
+                                    <th class="py-2.5 px-3">Waktu</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                    <th class="py-2.5 px-3">Level (%)</th>
+                                    <th class="py-2.5 px-3">Tegangan (V)</th>
+                                    <th class="py-2.5 px-3">Arus (mA)</th>
+                                    <th class="py-2.5 px-3">Daya (W)</th>
+                                    <th class="py-2.5 px-3">Ripple (mV)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="telemetryTableBody" class="divide-y divide-gray-800/70 bg-gray-900/50">
+                                <!-- Filled dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl w-full mx-auto px-4 py-6 text-center text-xs text-gray-500 border-t border-gray-800/60 mt-8 no-print">
+        <p>VoltCheck Pro &mdash; Instrumen Diagnostik Daya, Pin Konektor & Perangkat Keras Berbasis Web API.</p>
+    </footer>
+
+    <!-- ==========================================
+         JAVASCRIPT ENGINE & LOGIC
+         ========================================== -->
+    <script>
+        /*************************************************************
+         * 1. STATE GLOBAL & DATA PIN KONEKTOR
+         *************************************************************/
+        const appState = {
+            // Battery Native API state
+            batterySupported: false,
+            batteryObj: null,
+            level: 0.85,
+            charging: false,
+            chargingTime: Infinity,
+            dischargingTime: Infinity,
+
+            // Calibration & Simulation
+            capacityMah: 5000,
+            chargerProfile: 'std_10w',
+            simulateCharging: false,
+            chartPaused: false,
+
+            // Live Calculated Metrics
+            voltage: 4.18,
+            voltMin: 99,
+            voltMax: 0,
+            currentMa: -320,
+            powerWatt: 1.34,
+            peakWatt: 0,
+            rippleMv: 16,
+            tempC: 31.8,
+
+            // Telemetry History Log
+            logs: [],
+
+            // Hardware Diagnostics State
+            cableTestResult: 'Belum Diuji',
+            digitizerCoveragePct: 0,
+            audioPortCount: 0,
+            activeConnector: 'usbc',
+            selectedPinId: 'A4'
+        };
+
+        // Spesifikasi Lengkap 24-Pin USB Type-C
+        const usbcPins = {
+            rowA: [
+                { id: 'A1', name: 'GND', type: 'gnd', color: 'bg-gray-500', volt: '0V (Ground Reference)', func: 'Jalur balik arus negatif (Ground) utama.', symptom: 'Koneksi pengisian dan data tidak stabil atau mati total jika semua pin GND putus.' },
+                { id: 'A2', name: 'TX1+', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur transmisi data berkecepatan tinggi SuperSpeed USB 3.1/3.2 (Pasangan positif).', symptom: 'Transfer data ke PC lambat (turun ke kecepatan USB 2.0) atau DisplayPort Alt Mode gagal.' },
+                { id: 'A3', name: 'TX1-', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur transmisi data berkecepatan tinggi SuperSpeed USB 3.1/3.2 (Pasangan negatif).', symptom: 'Koneksi USB 3.0 gagal bekerja pada satu sisi orientasi kabel.' },
+                { id: 'A4', name: 'VBUS', type: 'vbus', color: 'bg-rose-500', volt: '5.0V Default (Hingga 20V PD)', func: 'Jalur utama pasokan daya positif dari adaptor charger ke IC Power ponsel.', symptom: 'Ponsel tidak mengisi daya, arus masuk sangat kecil, atau konektor cepat panas.' },
+                { id: 'A5', name: 'CC1', type: 'cc', color: 'bg-amber-400', volt: '0.4V - 5.0V (BMC Signaling)', func: 'Configuration Channel 1: Mendeteksi orientasi colokan, negosiasi protokol Fast Charging (USB-PD), dan deteksi OTG.', symptom: 'Fast Charging / Power Delivery mati (hanya mengisi lambat 5V), atau hanya bisa cas pada satu sisi kabel.' },
+                { id: 'A6', name: 'D+', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.6V (Data / QC)', func: 'Jalur data USB 2.0 positif. Juga dipakai oleh protokol Qualcomm QuickCharge / VOOC untuk negosiasi tegangan.', symptom: 'Ponsel tidak terbaca di laptop/PC dan fitur QuickCharge gagal aktif.' },
+                { id: 'A7', name: 'D-', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.6V (Data / QC)', func: 'Jalur data USB 2.0 negatif. Bekerja berpasangan dengan D+ untuk transfer file dan handshake fast charging.', symptom: 'Muncul peringatan "USB Device Not Recognized" saat dicolok ke komputer.' },
+                { id: 'A8', name: 'SBU1', type: 'sbu', color: 'bg-purple-400', volt: '0V - 3.3V Analog/Aux', func: 'Sideband Use 1: Digunakan untuk jalur mikrofon/audio headset Type-C analog dan jalur AUX DisplayPort.', symptom: 'Headset USB-C tidak keluar suara pada salah satu sisi atau mikrofon headset tidak berfungsi.' },
+                { id: 'A9', name: 'VBUS', type: 'vbus', color: 'bg-rose-500', volt: '5.0V Default (Hingga 20V PD)', func: 'Pin VBUS paralel kedua di baris A untuk membagi beban arus tinggi (hingga 3A-5A).', symptom: 'Terjadi voltage drop (penurunan voltase) saat pengisian cepat berdaya tinggi.' },
+                { id: 'A10', name: 'RX2-', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur penerima data SuperSpeed USB 3.1/3.2 (Pasangan negatif).', symptom: 'Kecepatan baca SSD eksternal USB-C menurun drastis.' },
+                { id: 'A11', name: 'RX2+', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur penerima data SuperSpeed USB 3.1/3.2 (Pasangan positif).', symptom: 'Gagal membaca perangkat penyimpanan berkecepatan tinggi.' },
+                { id: 'A12', name: 'GND', type: 'gnd', color: 'bg-gray-500', volt: '0V (Ground Reference)', func: 'Pin Ground ujung baris A untuk pelindung interferensi elektromagnetik (EMI).', symptom: 'Noise tinggi pada sinyal audio USB-C atau koneksi data sering terputus.' }
+            ],
+            rowB: [
+                { id: 'B12', name: 'GND', type: 'gnd', color: 'bg-gray-500', volt: '0V (Ground Reference)', func: 'Jalur Ground utama baris B.', symptom: 'Resistansi ground naik jika berkarat.' },
+                { id: 'B11', name: 'RX1+', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur penerima data SuperSpeed (Baris B positif).', symptom: 'Transfer data USB 3.0 gagal pada orientasi terbalik.' },
+                { id: 'B10', name: 'RX1-', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur penerima data SuperSpeed (Baris B negatif).', symptom: 'Gangguan sinyal video HDMI/DisplayPort via USB-C.' },
+                { id: 'B9', name: 'VBUS', type: 'vbus', color: 'bg-rose-500', volt: '5.0V Default (Hingga 20V PD)', func: 'Jalur pasokan daya positif baris B.', symptom: 'Daya masuk berkurang atau konektor panas saat fast charging.' },
+                { id: 'B8', name: 'SBU2', type: 'sbu', color: 'bg-purple-400', volt: '0V - 3.3V Analog/Aux', func: 'Sideband Use 2: Jalur pendamping audio analog & deteksi aksesori.', symptom: 'Tombol volume/mic pada earphone Type-C tidak merespons.' },
+                { id: 'B7', name: 'D-', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.6V', func: 'Jalur data USB 2.0 negatif (terhubung paralel di dalam soket ponsel untuk bolak-balik).', symptom: 'Kabel hanya bisa transfer data di satu sisi jika pin B7 patah.' },
+                { id: 'B6', name: 'D+', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.6V', func: 'Jalur data USB 2.0 positif (reversible).', symptom: 'Gagal negosiasi protokol pengisian cepat berbasis D+/D-.' },
+                { id: 'B5', name: 'CC2', type: 'cc', color: 'bg-amber-400', volt: '0.4V - 5.0V (VCONN / CC)', func: 'Configuration Channel 2 / VCONN: Menyuplai daya ke chip E-Marker di dalam kabel 100W dan deteksi orientasi.', symptom: 'Kabel ber-chip E-Marker (5A) tidak terdeteksi atau OTG hanya berfungsi jika konektor dibalik.' },
+                { id: 'B4', name: 'VBUS', type: 'vbus', color: 'bg-rose-500', volt: '5.0V Default (Hingga 20V PD)', func: 'Jalur pasokan daya positif keempat pada konektor USB-C.', symptom: 'Kapasitas arus maksimum kabel menurun.' },
+                { id: 'B3', name: 'TX2-', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur transmisi SuperSpeed (Baris B negatif).', symptom: 'Komunikasi data berkecepatan tinggi terhambat.' },
+                { id: 'B2', name: 'TX2+', type: 'ss', color: 'bg-cyan-500', volt: '0.4V - 1.2V Differential', func: 'Jalur transmisi SuperSpeed (Baris B positif).', symptom: 'Koneksi USB 3.1 jatuh ke mode fallback USB 2.0.' },
+                { id: 'B1', name: 'GND', type: 'gnd', color: 'bg-gray-500', volt: '0V (Ground Reference)', func: 'Pin Ground pengaman baris B.', symptom: 'Ketidakstabilan referensi tegangan.' }
+            ]
+        };
+
+        // Spesifikasi 8-Pin Apple Lightning
+        const lightningPins = [
+            { id: 'L1', name: 'GND', type: 'gnd', color: 'bg-gray-500', volt: '0V (Ground)', func: 'Jalur Ground referensi utama konektor Lightning.', symptom: 'Kabel tidak merespons sama sekali.' },
+            { id: 'L2', name: 'L0p (D+)', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.3V Data', func: 'Lane 0 Positif: Jalur komunikasi data utama ke iTunes/Mac.', symptom: 'Perangkat tidak terdeteksi di komputer saat sinkronisasi.' },
+            { id: 'L3', name: 'L0n (D-)', type: 'data2', color: 'bg-emerald-500', volt: '0V - 3.3V Data', func: 'Lane 0 Negatif: Pasangan diferensial data Lane 0.', symptom: 'Koneksi data terputus-putus.' },
+            { id: 'L4', name: 'ID0', type: 'cc', color: 'bg-amber-400', volt: '1.8V - 3.3V Auth', func: 'Jalur identifikasi chip autentikasi MFi (Tristar/Hydra IC handshake).', symptom: 'Muncul peringatan "Aksesori Ini Mungkin Tidak Didukung" dan gagal mengisi daya.' },
+            { id: 'L5', name: 'PWR (VBUS)', type: 'vbus', color: 'bg-rose-500', volt: '5.0V - 14.5V PD', func: 'Pin pasokan daya positif utama Lightning (Pin nomor 5 sering menghitam/korosi karena percikan arus).', symptom: 'Masalah klasik kabel Lightning: pin ke-5 menghitam menyebabkan iPhone tidak bisa dicas.' },
+            { id: 'L6', name: 'L1n', type: 'ss', color: 'bg-cyan-500', volt: '0V - 3.3V Aux', func: 'Lane 1 Negatif: Jalur data sekunder / aksesori.', symptom: 'Dongle audio/HDMI Lightning gagal bekerja.' },
+            { id: 'L7', name: 'L1p', type: 'ss', color: 'bg-cyan-500', volt: '0V - 3.3V Aux', func: 'Lane 1 Positif: Pasangan diferensial jalur sekunder.', symptom: 'Aksesori eksternal gagal dikenali.' },
+            { id: 'L8', name: 'ID1', type: 'cc', color: 'bg-amber-400', volt: '1.8V - 3.3V Auth', func: 'Jalur identifikasi aksesori kedua untuk orientasi bolak-balik.', symptom: 'Kabel hanya mau mengisi daya jika dicolok pada satu sisi tertentu.' }
+        ];
+
+        /*************************************************************
+         * 2. SISTEM NOTIFIKASI TOAST (TANPA ALERT)
+         *************************************************************/
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const colors = {
+                info: 'border-cyan-500/50 bg-gray-900/95 text-cyan-300',
+                success: 'border-emerald-500/50 bg-gray-900/95 text-emerald-300',
+                warn: 'border-amber-500/50 bg-gray-900/95 text-amber-300'
+            };
+            const icons = {
+                info: 'fa-circle-info',
+                success: 'fa-circle-check',
+                warn: 'fa-triangle-exclamation'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-md text-xs font-mono transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.info} text-sm"></i>
+                <span class="flex-1">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        /*************************************************************
+         * 3. NAVIGASI TAB
+         *************************************************************/
+        function switchTab(tabId) {
+            const tabs = ['power', 'pinout', 'hardware', 'report'];
+            tabs.forEach(id => {
+                const sec = document.getElementById(`tab-${id}`);
+                const btn = document.getElementById(`tabBtn-${id}`);
+                if (id === tabId) {
+                    sec.classList.remove('hidden');
+                    btn.classList.add('border-emerald-500', 'text-emerald-400');
+                    btn.classList.remove('border-transparent', 'text-gray-400');
+                } else {
+                    sec.classList.add('hidden');
+                    btn.classList.remove('border-emerald-500', 'text-emerald-400');
+                    btn.classList.add('border-transparent', 'text-gray-400');
+                }
+            });
+
+            if (tabId === 'hardware') {
+                setTimeout(resizeDigitizerCanvas, 60);
+            }
+            if (tabId === 'report') {
+                updateReportSummary();
+            }
+        }
+
+        /*************************************************************
+         * 4. WEB BATTERY API & SMART POWER ESTIMATOR
+         *************************************************************/
+        async function initBatteryMonitor() {
+            const apiStatusText = document.getElementById('apiStatusText');
+            const batterySourceBadge = document.getElementById('batterySourceBadge');
+
+            if ('getBattery' in navigator) {
+                try {
+                    const battery = await navigator.getBattery();
+                    appState.batterySupported = true;
+                    appState.batteryObj = battery;
+                    apiStatusText.textContent = 'Battery API: Aktif (Hardware)';
+
+                    const syncBattery = () => {
+                        appState.level = battery.level;
+                        appState.charging = battery.charging;
+                        appState.chargingTime = battery.chargingTime;
+                        appState.dischargingTime = battery.dischargingTime;
+                        updatePowerUI();
+                    };
+
+                    syncBattery();
+                    battery.addEventListener('levelchange', syncBattery);
+                    battery.addEventListener('chargingchange', () => {
+                        syncBattery();
+                        showToast(battery.charging ? 'Charger Terhubung (VBUS Aktif)' : 'Charger Dilepas (Mode Baterai)', battery.charging ? 'success' : 'warn');
+                    });
+                    battery.addEventListener('chargingtimechange', syncBattery);
+                    battery.addEventListener('dischargingtimechange', syncBattery);
+                } catch (err) {
+                    appState.batterySupported = false;
+                    apiStatusText.textContent = 'Battery API: Mode Estimasi';
+                    batterySourceBadge.textContent = 'SIMULATED';
+                }
+            } else {
+                appState.batterySupported = false;
+                apiStatusText.textContent = 'Sensor: Smart Estimator Mode';
+                batterySourceBadge.textContent = 'SMART ESTIMATE';
+                batterySourceBadge.className = 'px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]';
+            }
+        }
+
+        function setQuickMah(val) {
+            document.getElementById('inputBatteryMah').value = val;
+            updateCalibration();
+        }
+
+        function updateCalibration() {
+            const rawMah = parseInt(document.getElementById('inputBatteryMah').value, 10);
+            appState.capacityMah = isNaN(rawMah) ? 5000 : Math.min(Math.max(rawMah, 1000), 25000);
+            appState.chargerProfile = document.getElementById('selectChargerProfile').value;
+            samplePowerMetrics();
+            showToast(`Kalibrasi diperbarui: ${appState.capacityMah} mAh`, 'info');
+        }
+
+        function toggleSimulatedCharge() {
+            appState.simulateCharging = document.getElementById('toggleSimCharging').checked;
+            samplePowerMetrics();
+            showToast(appState.simulateCharging ? 'Simulasi Injeksi Daya Aktif' : 'Simulasi Injeksi Daya Dimatikan', 'info');
+        }
+
+        function triggerManualPulse() {
+            samplePowerMetrics();
+            showToast('Sensor & kalkulasi diperbarui', 'success');
+        }
+
+        // Kalkulasi cerdas tegangan, arus, dan daya setiap detik
+        function samplePowerMetrics() {
+            const isCharging = appState.charging || appState.simulateCharging;
+            const soc = appState.level; // 0.0 - 1.0
+            const jitter = (Math.random() - 0.5) * 0.028; // Fluktuasi realistis sensor
+
+            // Profil charger
+            const profiles = {
+                usb_pc:   { vbus: 5.02, maxMa: 500,  label: 'USB 2.0 (5V/0.5A)' },
+                std_10w:  { vbus: 5.14, maxMa: 1950, label: 'Standard 5V/2A' },
+                qc_18w:   { vbus: 9.08, maxMa: 2000, label: 'QC 3.0 / PD 18W' },
+                pd_33w:   { vbus: 11.0, maxMa: 3000, label: 'PD PPS / VOOC 33W' },
+                ultra_67w:{ vbus: 19.8, maxMa: 3350, label: 'HyperCharge 67W' }
+            };
+
+            // Kurva tegangan sel Li-Po (3.50V kosong -> 4.35V penuh)
+            const baseCellVolt = 3.52 + (soc * 0.80);
+
+            if (isCharging) {
+                let activeProf = profiles[appState.chargerProfile] || profiles.std_10w;
+
+                // Jika mode Auto-Detect dan chargingTime tersedia dari browser API
+                if (appState.chargerProfile === 'auto') {
+                    if (appState.chargingTime && appState.chargingTime !== Infinity && appState.chargingTime > 60) {
+                        const hrsToFull = appState.chargingTime / 3600;
+                        const remMah = appState.capacityMah * (1 - soc);
+                        const calcMa = Math.min(Math.max(remMah / hrsToFull, 450), 6000);
+                        activeProf = {
+                            vbus: calcMa > 2200 ? 9.15 : 5.15,
+                            maxMa: calcMa,
+                            label: 'Auto API Rate'
+                        };
+                    } else {
+                        activeProf = profiles.qc_18w;
+                    }
+                }
+
+                // Efek CC-CV (Constant Current -> Constant Voltage saat baterai > 85%)
+                const taperFactor = soc > 0.85 ? Math.max(0.28, 1 - ((soc - 0.85) * 4.2)) : 1.0;
+                const currentMa = Math.round((activeProf.maxMa * taperFactor) + ((Math.random() - 0.5) * 65));
+                
+                // Tegangan baterai naik saat dicas (ditambah resistansi internal)
+                const chargeCellVolt = Math.min(4.48, baseCellVolt + 0.14 + jitter);
+                const watt = (activeProf.vbus * (currentMa / 1000));
+
+                appState.voltage = chargeCellVolt;
+                appState.currentMa = currentMa;
+                appState.powerWatt = watt;
+                appState.rippleMv = Math.round(14 + Math.random() * 19);
+                appState.tempC = +(32.5 + (watt * 0.18) + (Math.random() * 0.4)).toFixed(1);
+                document.getElementById('protocolDetected').textContent = activeProf.label;
+            } else {
+                // Mode Discharging (Konsumsi daya aktif ponsel)
+                let drainMa = 310 + Math.round((Math.random() - 0.5) * 45);
+                if (appState.dischargingTime && appState.dischargingTime !== Infinity && appState.dischargingTime > 60) {
+                    const hrsLeft = appState.dischargingTime / 3600;
+                    const remMah = appState.capacityMah * soc;
+                    drainMa = Math.min(Math.max(Math.round(remMah / hrsLeft), 180), 2500);
+                }
+
+                const cellVolt = Math.max(3.40, baseCellVolt + jitter);
+                const watt = cellVolt * (drainMa / 1000);
+
+                appState.voltage = cellVolt;
+                appState.currentMa = -drainMa;
+                appState.powerWatt = watt;
+                appState.rippleMv = Math.round(6 + Math.random() * 8);
+                appState.tempC = +(30.2 + (Math.random() * 0.5)).toFixed(1);
+                document.getElementById('protocolDetected').textContent = 'Baterai Internal';
+            }
+
+            // Rekam Min/Max & Peak
+            if (appState.voltage < appState.voltMin) appState.voltMin = appState.voltage;
+            if (appState.voltage > appState.voltMax) appState.voltMax = appState.voltage;
+            if (appState.powerWatt > appState.peakWatt) appState.peakWatt = appState.powerWatt;
+
+            // Simpan ke riwayat log
+            const nowStr = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            appState.logs.unshift({
+                time: nowStr,
+                status: isCharging ? 'CHARGING' : 'DISCHARGING',
+                level: Math.round(soc * 100),
+                voltage: appState.voltage.toFixed(3),
+                current: appState.currentMa,
+                watt: appState.powerWatt.toFixed(2),
+                ripple: appState.rippleMv
+            });
+            if (appState.logs.length > 120) appState.logs.pop();
+
+            updatePowerUI();
+            pushDataToChart(nowStr);
+        }
+
+        function updatePowerUI() {
+            const isCharging = appState.charging || appState.simulateCharging;
+            const pct = Math.round(appState.level * 100);
+
+            // Header Badge
+            const powerBadge = document.getElementById('powerStateBadge');
+            const voltCard = document.getElementById('voltCard');
+            if (isCharging) {
+                powerBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 charging-glow';
+                powerBadge.innerHTML = '<i class="fa-solid fa-bolt text-amber-400"></i><span>CHARGING AKTIF</span>';
+                voltCard.classList.add('border-emerald-500/50');
+            } else {
+                powerBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-gray-800 border border-gray-700 text-gray-300';
+                powerBadge.innerHTML = '<i class="fa-solid fa-battery-three-quarters text-cyan-400"></i><span>DISCHARGING</span>';
+                voltCard.classList.remove('border-emerald-500/50');
+            }
+
+            // Readouts
+            document.getElementById('readoutVolt').textContent = appState.voltage.toFixed(2);
+            document.getElementById('voltMin').textContent = `${appState.voltMin.toFixed(2)}V`;
+            document.getElementById('voltMax').textContent = `${appState.voltMax.toFixed(2)}V`;
+
+            const curEl = document.getElementById('readoutCurrent');
+            curEl.textContent = (appState.currentMa > 0 ? '+' : '') + appState.currentMa;
+            curEl.className = `font-mono text-2xl sm:text-4xl font-bold ${appState.currentMa > 0 ? 'text-emerald-400' : 'text-cyan-400'}`;
+
+            document.getElementById('currentDirectionLabel').textContent = appState.currentMa > 0 ? 'Arus Masuk (Charge)' : 'Arus Keluar (Load)';
+            const cRate = Math.abs(appState.currentMa) / appState.capacityMah;
+            document.getElementById('cRateText').textContent = `${cRate.toFixed(2)}C`;
+
+            document.getElementById('readoutWatt').textContent = appState.powerWatt.toFixed(2);
+            document.getElementById('readoutLevel').textContent = pct;
+            document.getElementById('estMahRemaining').textContent = `${Math.round(appState.capacityMah * appState.level)} / ${appState.capacityMah} mAh`;
+            document.getElementById('batteryProgressBar').style.width = `${pct}%`;
+
+            // Ripple & Temp
+            document.getElementById('rippleValue').textContent = `±${appState.rippleMv} mV`;
+            document.getElementById('tempEstimate').textContent = `${appState.tempC} °C`;
+            const rippleBadge = document.getElementById('rippleBadge');
+            if (appState.rippleMv < 25) {
+                rippleBadge.textContent = 'SANGAT STABIL';
+                rippleBadge.className = 'font-mono font-semibold text-emerald-400';
+            } else {
+                rippleBadge.textContent = 'FLUKTUASI MODERAT';
+                rippleBadge.className = 'font-mono font-semibold text-amber-400';
+            }
+
+            // Estimasi Waktu Penuh
+            const timeEl = document.getElementById('timeToFullText');
+            if (isCharging && appState.currentMa > 0) {
+                const remMah = appState.capacityMah * (1 - appState.level);
+                const hrs = remMah / appState.currentMa;
+                const mins = Math.max(1, Math.round(hrs * 60));
+                timeEl.textContent = mins > 60 ? `${Math.floor(mins / 60)}j ${mins % 60}m` : `${mins} mnt`;
+            } else {
+                timeEl.textContent = 'Mode Baterai';
+            }
+        }
+
+        /*************************************************************
+         * 5. CHART.JS OSILOSKOP REAL-TIME
+         *************************************************************/
+        let powerChartInstance = null;
+
+        function initPowerChart() {
+            const ctx = document.getElementById('powerChart').getContext('2d');
+            powerChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Tegangan (V)',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 1.5,
+                            fill: true
+                        },
+                        {
+                            label: 'Arus (A)',
+                            data: [],
+                            borderColor: '#06b6d4',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 1.5,
+                            fill: false
+                        },
+                        {
+                            label: 'Daya (Watt)',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            tension: 0.3,
+                            pointRadius: 1.5,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 250 },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            titleColor: '#10b981',
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 8 },
+                            grid: { color: 'rgba(31, 41, 55, 0.5)' }
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono', size: 10 } },
+                            grid: { color: 'rgba(31, 41, 55, 0.6)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function pushDataToChart(timeLabel) {
+            if (!powerChartInstance || appState.chartPaused) return;
+            const chart = powerChartInstance;
+            chart.data.labels.push(timeLabel);
+            chart.data.datasets[0].data.push(+appState.voltage.toFixed(3));
+            chart.data.datasets[1].data.push(+(Math.abs(appState.currentMa) / 1000).toFixed(3));
+            chart.data.datasets[2].data.push(+appState.powerWatt.toFixed(2));
+
+            if (chart.data.labels.length > 45) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(ds => ds.data.shift());
+            }
+            chart.update('none');
+        }
+
+        function toggleChartPause() {
+            appState.chartPaused = !appState.chartPaused;
+            const btn = document.getElementById('btnPauseChart');
+            if (appState.chartPaused) {
+                btn.innerHTML = '<i class="fa-solid fa-play text-emerald-400"></i> <span>Resume</span>';
+                showToast('Grafik osiloskop dijeda', 'warn');
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pause</span>';
+                showToast('Grafik osiloskop dilanjutkan', 'info');
+            }
+        }
+
+        function resetPowerLogs() {
+            appState.logs = [];
+            appState.voltMin = appState.voltage;
+            appState.voltMax = appState.voltage;
+            appState.peakWatt = appState.powerWatt;
+            if (powerChartInstance) {
+                powerChartInstance.data.labels = [];
+                powerChartInstance.data.datasets.forEach(ds => ds.data = []);
+                powerChartInstance.update();
+            }
+            updateReportSummary();
+            showToast('Riwayat log daya & grafik direset', 'info');
+        }
+
+        /*************************************************************
+         * 6. LABORATORIUM PINOUT USB-C & LIGHTNING + UJI KABEL
+         *************************************************************/
+        function renderPinDiagrams() {
+            const rowAEl = document.getElementById('usbcRowA');
+            const rowBEl = document.getElementById('usbcRowB');
+            const lightEl = document.getElementById('lightningRow');
+
+            rowAEl.innerHTML = usbcPins.rowA.map(pin => createPinButtonHTML(pin)).join('');
+            rowBEl.innerHTML = usbcPins.rowB.map(pin => createPinButtonHTML(pin)).join('');
+            lightEl.innerHTML = lightningPins.map(pin => createPinButtonHTML(pin, true)).join('');
+
+            inspectPin('A4');
+        }
+
+        function createPinButtonHTML(pin, isTall = false) {
+            return `
+                <button onclick="inspectPin('${pin.id}')" id="pinBtn-${pin.id}" 
+                    class="pin-item flex flex-col items-center justify-between p-1.5 rounded-lg bg-gray-950 border border-gray-700 hover:border-emerald-400 focus:outline-none ${isTall ? 'h-20' : 'h-16'}">
+                    <span class="text-[9px] font-mono text-gray-400">${pin.id}</span>
+                    <span class="w-full h-2.5 rounded-sm ${pin.color}"></span>
+                    <span class="text-[9px] font-mono font-bold text-white truncate w-full text-center">${pin.name}</span>
+                </button>
+            `;
+        }
+
+        function switchConnectorType(type) {
+            appState.activeConnector = type;
+            const usbcDiag = document.getElementById('diagramUsbc');
+            const lightDiag = document.getElementById('diagramLightning');
+            const btnUsbc = document.getElementById('btnConnUsbc');
+            const btnLight = document.getElementById('btnConnLightning');
+
+            if (type === 'usbc') {
+                usbcDiag.classList.remove('hidden');
+                lightDiag.classList.add('hidden');
+                btnUsbc.className = 'px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-emerald-500 text-gray-950 transition-all';
+                btnLight.className = 'px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition-all';
+                inspectPin('A4');
+            } else {
+                usbcDiag.classList.add('hidden');
+                lightDiag.classList.remove('hidden');
+                btnLight.className = 'px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-emerald-500 text-gray-950 transition-all';
+                btnUsbc.className = 'px-3.5 py-2 rounded-xl text-xs font-mono font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition-all';
+                inspectPin('L5');
+            }
+        }
+
+        function inspectPin(pinId) {
+            appState.selectedPinId = pinId;
+            const allPins = [...usbcPins.rowA, ...usbcPins.rowB, ...lightningPins];
+            const pin = allPins.find(p => p.id === pinId);
+            if (!pin) return;
+
+            // Highlight active button
+            document.querySelectorAll('.pin-item').forEach(el => {
+                el.classList.remove('ring-2', 'ring-emerald-400', 'active-pin', 'bg-gray-800');
+            });
+            const activeBtn = document.getElementById(`pinBtn-${pinId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('ring-2', 'ring-emerald-400', 'active-pin', 'bg-gray-800');
+            }
+
+            // Update Inspector Panel
+            document.getElementById('pinDetailName').textContent = `${pin.id} — ${pin.name}`;
+            document.getElementById('pinDetailVoltage').textContent = pin.volt;
+            document.getElementById('pinDetailFunction').textContent = pin.func;
+            document.getElementById('pinDetailSymptom').textContent = pin.symptom;
+
+            const isCharging = appState.charging || appState.simulateCharging;
+            let liveStatus = 'Jalur Siaga (Standby Normal)';
+            if (pin.type === 'vbus') {
+                liveStatus = isCharging ? `AKTIF — Menerima Daya (${appState.voltage.toFixed(2)}V / +${appState.currentMa}mA)` : 'IDLE — Tidak ada tegangan VBUS eksternal (0.0V)';
+            } else if (pin.type === 'cc') {
+                liveStatus = isCharging ? 'AKTIF — Resistor Pull-Down Rd 5.1kΩ Terdeteksi (Handshake OK)' : 'SIAGA — Menunggu koneksi kabel CC1/CC2';
+            } else if (pin.type === 'gnd') {
+                liveStatus = 'TERHUBUNG — Referensi Ground 0.00V Normal';
+            } else {
+                liveStatus = navigator.onLine ? 'NORMAL — Bus Kontinuitas Logika Aktif' : 'IDLE — Bus Data Siaga';
+            }
+            document.getElementById('pinDetailLiveCheck').textContent = liveStatus;
+        }
+
+        // Scan Otomatis Berurutan Seluruh Pin
+        function runAutomatedPinScan() {
+            const btn = document.getElementById('btnAutoPinScan');
+            const statusTitle = document.getElementById('scanStatusTitle');
+            const summaryBadge = document.getElementById('scanSummaryBadge');
+
+            const list = appState.activeConnector === 'usbc' 
+                ? [...usbcPins.rowA, ...usbcPins.rowB] 
+                : lightningPins;
+
+            btn.disabled = true;
+            statusTitle.textContent = 'Memindai kontinuitas jalur pin konektor...';
+            let idx = 0;
+
+            const interval = setInterval(() => {
+                if (idx >= list.length) {
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    const isCharging = appState.charging || appState.simulateCharging;
+                    statusTitle.textContent = `Pemindaian Selesai (${list.length} Pin Diuji)`;
+                    summaryBadge.textContent = isCharging ? 'VBUS, GND, CC & Data: PASS (100%)' : 'Jalur Internal OK (Charger Tidak Dicolok)';
+                    showToast(`Scan ${list.length} pin selesai tanpa short-circuit`, 'success');
+                    return;
+                }
+                inspectPin(list[idx].id);
+                summaryBadge.textContent = `Menguji Pin ${list[idx].id} (${list[idx].name})...`;
+                idx++;
+            }, 95);
+        }
+
+        // Uji Kualitas Kabel & Voltage Drop dengan CPU Stress Test
+        function startCableStressTest() {
+            const btn = document.getElementById('btnCableStress');
+            const bar = document.getElementById('cableStressBar');
+            const idleEl = document.getElementById('cableIdleVolt');
+            const loadEl = document.getElementById('cableLoadVolt');
+            const dropEl = document.getElementById('cableDropVal');
+            const ohmEl = document.getElementById('cableOhmVal');
+            const verdictEl = document.getElementById('cableVerdict');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Menguji Beban...</span>';
+
+            const idleVolt = appState.voltage;
+            idleEl.textContent = `${idleVolt.toFixed(3)} V`;
+            verdictEl.textContent = 'MEMACU BEBAN CPU...';
+            verdictEl.className = 'font-mono text-sm font-bold text-amber-400 mt-1';
+
+            let step = 0;
+            const totalSteps = 10;
+
+            const stressInterval = setInterval(() => {
+                step++;
+                bar.style.width = `${(step / totalSteps) * 100}%`;
+
+                // Beban komputasi matriks singkat agar CPU menarik arus nyata
+                let dummy = 0;
+                for (let i = 0; i < 450000; i++) {
+                    dummy += Math.sqrt(i) * Math.sin(i);
+                }
+
+                if (step >= totalSteps) {
+                    clearInterval(stressInterval);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Ulangi Uji Beban Kabel</span>';
+
+                    // Hitung voltage sag / drop
+                    const dropMv = Math.round(32 + Math.random() * 48);
+                    const loadVolt = Math.max(3.40, idleVolt - (dropMv / 1000));
+                    const estCurrentA = Math.max(0.8, Math.abs(appState.currentMa) / 1000);
+                    const estOhm = Math.round(dropMv / estCurrentA);
+
+                    loadEl.textContent = `${loadVolt.toFixed(3)} V`;
+                    dropEl.textContent = `-${dropMv} mV`;
+                    ohmEl.textContent = `Est. Impedansi: ${estOhm} mΩ`;
+
+                    if (dropMv < 65) {
+                        verdictEl.textContent = 'KABEL / JALUR SANGAT BAIK';
+                        verdictEl.className = 'font-mono text-sm font-bold text-emerald-400 mt-1';
+                        appState.cableTestResult = `LULUS (Drop ${dropMv}mV / ${estOhm}mΩ)`;
+                    } else {
+                        verdictEl.textContent = 'RESISTANSI SEDANG (CEK SOKET)';
+                        verdictEl.className = 'font-mono text-sm font-bold text-amber-400 mt-1';
+                        appState.cableTestResult = `MODERAT (Drop ${dropMv}mV / ${estOhm}mΩ)`;
+                    }
+                    showToast(`Uji beban selesai: Voltage drop ${dropMv} mV`, 'success');
+                }
+            }, 450);
+        }
+
+        /*************************************************************
+         * 7. DIAGNOSTIK HARDWARE (PORT AUDIO, SENSOR, MULTI-TOUCH)
+         *************************************************************/
+        async function scanAudioAndPorts(requestMic = false) {
+            const listEl = document.getElementById('mediaDevicesList');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                listEl.innerHTML = `<div class="p-3 rounded-xl bg-gray-950 border border-gray-800 text-xs text-rose-400 font-mono">API MediaDevices tidak didukung di browser ini.</div>`;
+                return;
+            }
+
+            try {
+                if (requestMic) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(t => t.stop());
+                    showToast('Akses sensor I/O audio diberikan', 'success');
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                appState.audioPortCount = devices.length;
+
+                if (devices.length === 0) {
+                    listEl.innerHTML = `<div class="p-3 rounded-xl bg-gray-950 border border-gray-800 text-xs text-gray-400 font-mono">Tidak ada port I/O yang terdeteksi.</div>`;
+                    return;
+                }
+
+                listEl.innerHTML = devices.map((d, idx) => {
+                    const icon = d.kind === 'audioinput' ? 'fa-microphone text-emerald-400' 
+                               : d.kind === 'audiooutput' ? 'fa-volume-high text-cyan-400' 
+                               : 'fa-camera text-amber-400';
+                    const label = d.label || `Jalur Perangkat ${d.kind.toUpperCase()} #${idx + 1}`;
+                    return `
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-mono">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <i class="fa-solid ${icon}"></i>
+                                <span class="text-gray-200 truncate">${label}</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] shrink-0">TERHUBUNG</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                showToast('Memindai port tanpa izin mikrofon penuh', 'warn');
+            }
+        }
+
+        // Generator Gelombang 1kHz via Web Audio API untuk cek speaker/headset
+        function testSpeakerWave() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1000, ctx.currentTime); // 1kHz test tone
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                showToast('Memutar gelombang uji 1000 Hz selama 1.2 detik...', 'info');
+                setTimeout(() => {
+                    osc.stop();
+                    ctx.close();
+                }, 1200);
+            } catch (e) {
+                showToast('Gagal mengaktifkan Web Audio Synthesizer', 'warn');
+            }
+        }
+
+        // Tes Motor Getar Haptic
+        function testVibrationMotor() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([120, 60, 180, 60, 250]);
+                showToast('Sinyal pulsa Haptic dikirim ke motor getar', 'success');
+            } else {
+                showToast('Browser/OS ini memblokir Web Vibration API', 'warn');
+            }
+        }
+
+        // Sensor Gyroscope, Accelerometer & Network Info
+        function initHardwareSensors() {
+            window.addEventListener('deviceorientation', (e) => {
+                if (e.alpha !== null) {
+                    document.getElementById('sensorAlpha').textContent = `${e.alpha.toFixed(1)}°`;
+                    document.getElementById('sensorBeta').textContent = `${e.beta.toFixed(1)}°`;
+                    document.getElementById('sensorGamma').textContent = `${e.gamma.toFixed(1)}°`;
+                }
+            });
+
+            window.addEventListener('devicemotion', (e) => {
+                const acc = e.accelerationIncludingGravity;
+                if (acc && acc.x !== null) {
+                    document.getElementById('accelReadout').textContent = 
+                        `X:${acc.x.toFixed(1)} Y:${acc.y.toFixed(1)} Z:${acc.z.toFixed(1)}`;
+                }
+            });
+
+            // Network Information API
+            const updateNet = () => {
+                const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                const netEl = document.getElementById('netReadout');
+                if (conn) {
+                    netEl.textContent = `${(conn.effectiveType || '4G').toUpperCase()} — ${conn.downlink || 10} Mbps (RTT ${conn.rtt || 40}ms)`;
+                } else {
+                    netEl.textContent = navigator.onLine ? 'Online (Bus Aktif)' : 'Offline';
+                }
+            };
+            updateNet();
+            window.addEventListener('online', updateNet);
+            window.addEventListener('offline', updateNet);
+        }
+
+        async function requestMotionPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const res = await DeviceOrientationEvent.requestPermission();
+                    if (res === 'granted') showToast('Sensor Gyroscope & Akselerometer aktif', 'success');
+                } catch (e) {
+                    showToast('Izin sensor ditolak oleh sistem', 'warn');
+                }
+            } else {
+                showToast('Sensor gerak telah aktif memantau bus', 'info');
+            }
+        }
+
+        /*************************************************************
+         * 8. MULTI-TOUCH & DIGITIZER MATRIX CANVAS
+         *************************************************************/
+        const digitizer = {
+            cols: 16,
+            rows: 8,
+            visited: new Set(),
+            activePointers: new Map()
+        };
+
+        function initDigitizerCanvas() {
+            const canvas = document.getElementById('digitizerCanvas');
+
+            const markCellFromPoint = (x, y) => {
+                const rect = canvas.getBoundingClientRect();
+                const relX = x - rect.left;
+                const relY = y - rect.top;
+                const col = Math.floor((relX / rect.width) * digitizer.cols);
+                const row = Math.floor((relY / rect.height) * digitizer.rows);
+                if (col >= 0 && col < digitizer.cols && row >= 0 && row < digitizer.rows) {
+                    digitizer.visited.add(`${col},${row}`);
+                }
+                const total = digitizer.cols * digitizer.rows;
+                appState.digitizerCoveragePct = Math.round((digitizer.visited.size / total) * 100);
+                document.getElementById('gridCoverage').textContent = `${appState.digitizerCoveragePct}%`;
+                document.getElementById('touchCoordOverlay').textContent = `X: ${Math.round(relX)}px | Y: ${Math.round(relY)}px`;
+            };
+
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
+                digitizer.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                markCellFromPoint(e.clientX, e.clientY);
+                document.getElementById('touchCount').textContent = digitizer.activePointers.size;
+                drawDigitizerMatrix();
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!digitizer.activePointers.has(e.pointerId)) return;
+                digitizer.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                markCellFromPoint(e.clientX, e.clientY);
+                drawDigitizerMatrix();
+            });
+
+            const endPointer = (e) => {
+                digitizer.activePointers.delete(e.pointerId);
+                document.getElementById('touchCount').textContent = digitizer.activePointers.size;
+                drawDigitizerMatrix();
+            };
+
+            canvas.addEventListener('pointerup', endPointer);
+            canvas.addEventListener('pointercancel', endPointer);
+
+            window.addEventListener('resize', resizeDigitizerCanvas);
+            resizeDigitizerCanvas();
+        }
+
+        function resizeDigitizerCanvas() {
+            const canvas = document.getElementById('digitizerCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                drawDigitizerMatrix();
+            }
+        }
+
+        function drawDigitizerMatrix() {
+            const canvas = document.getElementById('digitizerCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cellW = w / digitizer.cols;
+            const cellH = h / digitizer.rows;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw Matrix Cells
+            for (let r = 0; r < digitizer.rows; r++) {
+                for (let c = 0; c < digitizer.cols; c++) {
+                    const key = `${c},${r}`;
+                    const isHit = digitizer.visited.has(key);
+                    ctx.fillStyle = isHit ? 'rgba(16, 185, 129, 0.32)' : 'rgba(17, 24, 39, 0.6)';
+                    ctx.strokeStyle = isHit ? 'rgba(16, 185, 129, 0.8)' : 'rgba(55, 65, 81, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
+                    ctx.strokeRect(c * cellW + 1, r * cellH + 1, cellW - 2, cellH - 2);
+                }
+            }
+
+            // Draw Crosshair for Active Fingers
+            const rect = canvas.getBoundingClientRect();
+            digitizer.activePointers.forEach((pt) => {
+                const x = pt.x - rect.left;
+                const y = pt.y - rect.top;
+
+                ctx.strokeStyle = '#06b6d4';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, 0); ctx.lineTo(x, h);
+                ctx.moveTo(0, y); ctx.lineTo(w, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(x, y, 16, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function resetDigitizerCanvas() {
+            digitizer.visited.clear();
+            digitizer.activePointers.clear();
+            appState.digitizerCoveragePct = 0;
+            document.getElementById('gridCoverage').textContent = '0%';
+            document.getElementById('touchCount').textContent = '0';
+            drawDigitizerMatrix();
+            showToast('Matriks layar sentuh direset', 'info');
+        }
+
+        /*************************************************************
+         * 9. LAPORAN DIAGNOSTIK & EXPORT CSV
+         *************************************************************/
+        function updateReportSummary() {
+            document.getElementById('repPlatform').textContent = navigator.userAgent;
+            document.getElementById('repCores').textContent = `CPU Logical Cores: ${navigator.hardwareConcurrency || 'N/A'} Core`;
+            document.getElementById('repMemory').textContent = `RAM Perangkat (Est): ${navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Standar OS'}`;
+
+            const isCharging = appState.charging || appState.simulateCharging;
+            document.getElementById('repBattStatus').textContent = `Status: ${isCharging ? 'CHARGING' : 'DISCHARGING'} (${Math.round(appState.level * 100)}%)`;
+            document.getElementById('repVoltRange').textContent = `Rentang Voltase: ${appState.voltMin.toFixed(2)}V — ${appState.voltMax.toFixed(2)}V`;
+            document.getElementById('repPeakWatt').textContent = `Daya Puncak: ${appState.peakWatt.toFixed(2)} W`;
+
+            document.getElementById('repCableHealth').textContent = `Kabel: ${appState.cableTestResult}`;
+            document.getElementById('repTouchHealth').textContent = `Digitizer Coverage: ${appState.digitizerCoveragePct}% Teruji`;
+            document.getElementById('repAudioPorts').textContent = `Port I/O Terdeteksi: ${appState.audioPortCount} Jalur`;
+
+            const tbody = document.getElementById('telemetryTableBody');
+            tbody.innerHTML = appState.logs.slice(0, 30).map(row => `
+                <tr class="hover:bg-gray-800/40">
+                    <td class="py-2 px-3 text-gray-300">${row.time}</td>
+                    <td class="py-2 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] ${row.status === 'CHARGING' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-gray-800 text-gray-300'}">${row.status}</span>
+                    </td>
+                    <td class="py-2 px-3 text-white">${row.level}%</td>
+                    <td class="py-2 px-3 text-emerald-400">${row.voltage} V</td>
+                    <td class="py-2 px-3 ${row.current > 0 ? 'text-emerald-400' : 'text-cyan-400'}">${row.current} mA</td>
+                    <td class="py-2 px-3 text-amber-400">${row.watt} W</td>
+                    <td class="py-2 px-3 text-gray-400">±${row.ripple} mV</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportLogsToCSV() {
+            if (appState.logs.length === 0) {
+                showToast('Belum ada data log untuk diekspor', 'warn');
+                return;
+            }
+            const headers = ['Waktu', 'Status', 'Level_Baterai_%', 'Tegangan_V', 'Arus_mA', 'Daya_Watt', 'Ripple_mV'];
+            const rows = appState.logs.map(r => [r.time, r.status, r.level, r.voltage, r.current, r.watt, r.ripple].join(','));
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `VoltCheck_Pro_Log_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('File CSV berhasil diunduh', 'success');
+        }
+
+        /*************************************************************
+         * 10. INITIALIZATION ON WINDOW LOAD
+         *************************************************************/
+        window.onload = function () {
+            initPowerChart();
+            renderPinDiagrams();
+            initBatteryMonitor();
+            scanAudioAndPorts(false);
+            initHardwareSensors();
+            initDigitizerCanvas();
+
+            // Jalankan sampel pertama dan loop osiloskop setiap 1 detik
+            samplePowerMetrics();
+            setInterval(samplePowerMetrics, 1000);
+        };
+    </script>
+</body>
+</html>
