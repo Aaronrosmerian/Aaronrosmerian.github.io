@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromaStudio — Editor Warna & Foto</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        studio: {
+                            950: '#090a0f',
+                            900: '#12131c',
+                            800: '#1c1e2b',
+                            700: '#2a2d3f',
+                            accent: '#6366f1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar & Range Slider Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #12131c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2d3f;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f46e5;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2a2d3f;
+            border-radius: 999px;
+            outline: none;
+            transition: background 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+            background: #818cf8;
+        }
+
+        /* Checkerboard background for transparent canvas */
+        .bg-checkerboard {
+            background-color: #0d0e15;
+            background-image: 
+                linear-gradient(45deg, #181a26 25%, transparent 25%), 
+                linear-gradient(-45deg, #181a26 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #181a26 75%), 
+                linear-gradient(-45deg, transparent 75%, #181a26 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="bg-studio-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 bg-studio-900/90 backdrop-blur-md border-b border-studio-700/70 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-30">
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <i class="ph-fill ph-palette text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base sm:text-lg tracking-tight flex items-center gap-2">
+                    ChromaStudio
+                    <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Pro</span>
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">Editor Warna & Transformasi Foto Digital</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <!-- Upload Button -->
+            <label for="fileInput" class="cursor-pointer px-3 py-2 rounded-lg bg-studio-800 hover:bg-studio-700 border border-studio-700 text-xs sm:text-sm font-medium text-slate-200 flex items-center gap-2 transition">
+                <i class="ph ph-upload-simple text-base text-indigo-400"></i>
+                <span class="hidden md:inline">Unggah Foto</span>
+            </label>
+            <input id="fileInput" type="file" accept="image/*" class="hidden">
+
+            <!-- Sample Presets Dropdown Trigger -->
+            <div class="relative" id="sampleDropdownContainer">
+                <button id="sampleBtn" class="px-3 py-2 rounded-lg bg-studio-800 hover:bg-studio-700 border border-studio-700 text-xs sm:text-sm font-medium text-slate-200 flex items-center gap-1.5 transition">
+                    <i class="ph ph-images text-base text-emerald-400"></i>
+                    <span class="hidden md:inline">Gambar Contoh</span>
+                    <i class="ph ph-caret-down text-xs text-slate-400"></i>
+                </button>
+                <!-- Dropdown Menu -->
+                <div id="sampleMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-studio-900 border border-studio-700 shadow-2xl py-1.5 z-50">
+                    <div class="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Pilih Gambar Contoh</div>
+                    <button onclick="loadSampleImage('portrait')" class="w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-studio-800 flex items-center gap-2.5 text-slate-200">
+                        <i class="ph ph-user-focus text-indigo-400"></i> Potret Neon
+                    </button>
+                    <button onclick="loadSampleImage('nature')" class="w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-studio-800 flex items-center gap-2.5 text-slate-200">
+                        <i class="ph ph-mountains text-emerald-400"></i> Alam Pegunungan
+                    </button>
+                    <button onclick="loadSampleImage('cybercity')" class="w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-studio-800 flex items-center gap-2.5 text-slate-200">
+                        <i class="ph ph-buildings text-pink-400"></i> Kota Malam
+                    </button>
+                    <button onclick="loadSampleImage('vintagecar')" class="w-full px-3 py-2 text-left text-xs sm:text-sm hover:bg-studio-800 flex items-center gap-2.5 text-slate-200">
+                        <i class="ph ph-car-profile text-amber-400"></i> Mobil Klasik
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reset All -->
+            <button id="resetAllBtn" class="px-3 py-2 rounded-lg bg-studio-800 hover:bg-rose-950/60 hover:border-rose-700/60 border border-studio-700 text-xs sm:text-sm font-medium text-slate-300 hover:text-rose-200 flex items-center gap-1.5 transition" title="Reset Semua Pengaturan">
+                <i class="ph ph-arrow-counter-clockwise text-base text-rose-400"></i>
+                <span class="hidden sm:inline">Reset</span>
+            </button>
+
+            <!-- Download Modal Trigger -->
+            <button id="openExportModalBtn" class="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition">
+                <i class="ph-bold ph-download-simple text-base"></i>
+                <span>Unduh</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- Left / Center Canvas Preview Area -->
+        <section class="flex-1 flex flex-col bg-checkerboard relative min-h-[380px] lg:min-h-0 select-none overflow-hidden" id="dropZone">
+            
+            <!-- Drag & Drop Overlay -->
+            <div id="dragOverlay" class="hidden absolute inset-0 bg-indigo-950/80 backdrop-blur-sm border-2 border-dashed border-indigo-400 z-30 flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-3 text-indigo-300">
+                    <i class="ph-fill ph-cloud-arrow-up text-4xl"></i>
+                </div>
+                <p class="text-lg font-bold text-white">Lepaskan file gambar di sini</p>
+                <p class="text-sm text-indigo-200">Mendukung format JPG, PNG, WEBP, dan SVG</p>
+            </div>
+
+            <!-- Top Floating Info Bar (Resolution, Picked Color, Eyedropper hint) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-studio-900/80 backdrop-blur-md border-b border-studio-800 text-xs z-10">
+                <div class="flex items-center gap-3">
+                    <span id="imageDimensions" class="px-2.5 py-1 rounded-md bg-studio-800 text-slate-300 font-mono">Memuat...</span>
+                    <span id="activePresetBadge" class="px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">Filter: Normal</span>
+                </div>
+
+                <!-- Eyedropper / Color Inspector -->
+                <div class="flex items-center gap-2 bg-studio-800/90 px-2.5 py-1 rounded-lg border border-studio-700">
+                    <span class="text-slate-400 hidden sm:inline"><i class="ph ph-eyedropper text-indigo-400 mr-1"></i>Klik kanvas untuk sampel warna:</span>
+                    <span id="pickedColorSwatch" class="w-4 h-4 rounded border border-white/30 inline-block bg-indigo-500"></span>
+                    <code id="pickedColorHex" class="font-mono text-slate-200 font-semibold">#6366F1</code>
+                    <button id="copyHexBtn" class="text-slate-400 hover:text-white transition" title="Salin kode HEX">
+                        <i class="ph ph-copy text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Wrapper -->
+            <div class="flex-1 flex items-center justify-center p-4 sm:p-8 overflow-auto relative">
+                <div class="relative inline-flex items-center justify-center shadow-2xl rounded-lg overflow-hidden border border-studio-700/60 bg-studio-950/50">
+                    <canvas id="editorCanvas" class="max-w-full max-h-[58vh] lg:max-h-[72vh] w-auto h-auto object-contain cursor-crosshair block transition-transform duration-150"></canvas>
+                    
+                    <!-- Before / After Badge Indicator -->
+                    <div id="beforeBadge" class="hidden absolute top-3 left-3 px-3 py-1 rounded-full bg-amber-500 text-slate-950 font-bold text-xs tracking-wide uppercase shadow-lg">
+                        Asli (Before)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Floating Canvas Toolbar -->
+            <div class="px-4 py-3 bg-studio-900/90 backdrop-blur-md border-t border-studio-800 flex flex-wrap items-center justify-between gap-3 z-10">
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <i class="ph ph-info text-indigo-400 text-base"></i>
+                    <span>Seret & lepaskan gambar langsung ke area kerja, atau geser teks di atas kanvas.</span>
+                </div>
+
+                <div class="flex items-center gap-2 ml-auto">
+                    <!-- Randomize / Auto Magic Button -->
+                    <button id="magicEnhanceBtn" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-pink-500/20 hover:from-amber-500/30 hover:to-pink-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium flex items-center gap-1.5 transition">
+                        <i class="ph-fill ph-sparkle text-amber-400"></i>
+                        <span>Otomatis Cerah</span>
+                    </button>
+
+                    <!-- Compare Before / After Button -->
+                    <button id="compareBtn" class="px-3.5 py-1.5 rounded-lg bg-studio-800 hover:bg-studio-700 active:bg-indigo-600 border border-studio-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 select-none transition">
+                        <i class="ph ph-split-horizontal text-base text-indigo-400"></i>
+                        <span>Tahan: Bandingkan (Asli)</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Control Panel Sidebar -->
+        <aside class="w-full lg:w-[410px] xl:w-[440px] bg-studio-900 border-t lg:border-t-0 lg:border-l border-studio-700/80 flex flex-col h-auto lg:h-[calc(100vh-4rem)]">
+            
+            <!-- Navigation Tabs -->
+            <div class="grid grid-cols-4 border-b border-studio-800 bg-studio-950/40 p-1.5 gap-1">
+                <button onclick="switchTab('adjust')" id="tabBtn-adjust" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 bg-indigo-600 text-white shadow transition">
+                    <i class="ph-bold ph-sliders text-base"></i>
+                    <span>Warna</span>
+                </button>
+                <button onclick="switchTab('presets')" id="tabBtn-presets" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-studio-800/60 transition">
+                    <i class="ph-bold ph-magic-wand text-base"></i>
+                    <span>Filter & Tint</span>
+                </button>
+                <button onclick="switchTab('transform')" id="tabBtn-transform" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-studio-800/60 transition">
+                    <i class="ph-bold ph-crop text-base"></i>
+                    <span>Potong & Putar</span>
+                </button>
+                <button onclick="switchTab('text')" id="tabBtn-text" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-studio-800/60 transition">
+                    <i class="ph-bold ph-text-t text-base"></i>
+                    <span>Watermark</span>
+                </button>
+            </div>
+
+            <!-- Scrollable Controls Container -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+
+                <!-- TAB 1: WARNA & PENCAHAYAAN -->
+                <div id="tabContent-adjust" class="space-y-5">
+                    
+                    <!-- Live RGB Histogram Card -->
+                    <div class="p-3.5 rounded-xl bg-studio-950/70 border border-studio-800 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-slate-300 flex items-center gap-1.5">
+                                <i class="ph-fill ph-chart-bar text-indigo-400"></i> Histogram Warna RGB
+                            </span>
+                            <span class="text-[11px] text-slate-400">Real-time</span>
+                        </div>
+                        <canvas id="histogramCanvas" width="320" height="70" class="w-full h-16 rounded-lg bg-studio-900 border border-studio-800/80"></canvas>
+                    </div>
+
+                    <!-- Sliders List -->
+                    <div class="space-y-4">
+                        <!-- Brightness -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-sun text-amber-400 text-sm"></i> Kecerahan (Brightness)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-brightness" class="font-mono text-indigo-300">100%</span>
+                                    <button onclick="resetSingle('brightness', 100)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-brightness" min="0" max="200" value="100">
+                        </div>
+
+                        <!-- Contrast -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-circle-half text-indigo-400 text-sm"></i> Kontras (Contrast)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-contrast" class="font-mono text-indigo-300">100%</span>
+                                    <button onclick="resetSingle('contrast', 100)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-contrast" min="0" max="200" value="100">
+                        </div>
+
+                        <!-- Saturation -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-drop text-pink-400 text-sm"></i> Saturasi (Saturation)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-saturation" class="font-mono text-indigo-300">100%</span>
+                                    <button onclick="resetSingle('saturation', 100)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-saturation" min="0" max="250" value="100">
+                        </div>
+
+                        <!-- Hue Rotate -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-rainbow text-emerald-400 text-sm"></i> Rona Warna (Hue)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-hue" class="font-mono text-indigo-300">0°</span>
+                                    <button onclick="resetSingle('hue', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-hue" min="-180" max="180" value="0">
+                        </div>
+
+                        <!-- Sepia -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-film-strip text-amber-500 text-sm"></i> Sepia Klasik
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-sepia" class="font-mono text-indigo-300">0%</span>
+                                    <button onclick="resetSingle('sepia', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-sepia" min="0" max="100" value="0">
+                        </div>
+
+                        <!-- Grayscale -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-intersect text-slate-400 text-sm"></i> Hitam Putih (Grayscale)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-grayscale" class="font-mono text-indigo-300">0%</span>
+                                    <button onclick="resetSingle('grayscale', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-grayscale" min="0" max="100" value="0">
+                        </div>
+
+                        <!-- Invert -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-arrows-left-right text-purple-400 text-sm"></i> Balik Warna (Invert)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-invert" class="font-mono text-indigo-300">0%</span>
+                                    <button onclick="resetSingle('invert', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-invert" min="0" max="100" value="0">
+                        </div>
+
+                        <!-- Blur -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-drop-half-bottom text-cyan-400 text-sm"></i> Efek Buram (Blur)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-blur" class="font-mono text-indigo-300">0px</span>
+                                    <button onclick="resetSingle('blur', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-blur" min="0" max="20" step="0.5" value="0">
+                        </div>
+
+                        <!-- Opacity -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-checkerboard text-teal-400 text-sm"></i> Transparansi (Opacity)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-opacity" class="font-mono text-indigo-300">100%</span>
+                                    <button onclick="resetSingle('opacity', 100)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-opacity" min="10" max="100" value="100">
+                        </div>
+
+                        <!-- Vignette (Extra Feature) -->
+                        <div class="space-y-1.5 pt-2 border-t border-studio-800">
+                            <div class="flex justify-between text-xs">
+                                <label class="font-medium text-slate-300 flex items-center gap-1.5">
+                                    <i class="ph ph-aperture text-rose-400 text-sm"></i> Fokus Tepi Gelap (Vignette)
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <span id="val-vignette" class="font-mono text-indigo-300">0%</span>
+                                    <button onclick="resetSingle('vignette', 0)" class="text-slate-500 hover:text-slate-300" title="Reset"><i class="ph ph-arrow-counter-clockwise"></i></button>
+                                </div>
+                            </div>
+                            <input type="range" id="ctrl-vignette" min="0" max="100" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: FILTER PRESET & COLOR OVERLAY -->
+                <div id="tabContent-presets" class="hidden space-y-6">
+                    
+                    <!-- Preset Grid -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i class="ph-fill ph-sparkle text-indigo-400"></i> Filter Warna Preset
+                        </h3>
+                        <div class="grid grid-cols-3 gap-2.5" id="presetButtonsContainer">
+                            <!-- Generated dynamically or structured clearly -->
+                            <button onclick="applyPreset('normal')" data-preset="normal" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-indigo-500 text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-slate-400 to-slate-200 block"></span>
+                                <span class="text-xs font-semibold text-white">Normal</span>
+                            </button>
+
+                            <button onclick="applyPreset('vintage')" data-preset="vintage" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-700 to-yellow-300 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Vintage</span>
+                            </button>
+
+                            <button onclick="applyPreset('warm')" data-preset="warm" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-orange-500 to-amber-300 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Warm Senja</span>
+                            </button>
+
+                            <button onclick="applyPreset('cool')" data-preset="cool" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-300 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Cool Dingin</span>
+                            </button>
+
+                            <button onclick="applyPreset('cyberpunk')" data-preset="cyberpunk" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-fuchsia-600 to-cyan-400 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Cyberpunk</span>
+                            </button>
+
+                            <button onclick="applyPreset('noir')" data-preset="noir" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-black via-zinc-700 to-zinc-300 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Film Noir</span>
+                            </button>
+
+                            <button onclick="applyPreset('dramatic')" data-preset="dramatic" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-900 to-indigo-400 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Dramatic</span>
+                            </button>
+
+                            <button onclick="applyPreset('emerald')" data-preset="emerald" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-800 to-lime-300 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Hutan Sinema</span>
+                            </button>
+
+                            <button onclick="applyPreset('pastel')" data-preset="pastel" class="preset-card group p-2.5 rounded-xl bg-studio-800 hover:bg-studio-700 border-2 border-transparent text-left transition flex flex-col justify-between h-20">
+                                <span class="w-6 h-6 rounded-full bg-gradient-to-tr from-pink-300 to-indigo-200 block"></span>
+                                <span class="text-xs font-semibold text-slate-200">Pastel Lembut</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Color Overlay / Tint Section -->
+                    <div class="p-4 rounded-xl bg-studio-950/70 border border-studio-800 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <i class="ph-fill ph-paint-bucket text-pink-400"></i> Lapisan Warna (Color Overlay / Tint)
+                            </h3>
+                            <button onclick="resetTint()" class="text-xs text-slate-400 hover:text-white">Reset Tint</button>
+                        </div>
+
+                        <!-- Color Picker & Quick Swatches -->
+                        <div class="flex items-center gap-3">
+                            <label class="relative flex items-center gap-2 cursor-pointer bg-studio-800 px-3 py-2 rounded-lg border border-studio-700">
+                                <input type="color" id="ctrl-tintColor" value="#6366f1" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                                <span id="tintColorHexLabel" class="text-xs font-mono text-slate-200">#6366F1</span>
+                            </label>
+
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button onclick="setQuickTint('#f43f5e')" class="w-6 h-6 rounded-full bg-rose-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setQuickTint('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setQuickTint('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setQuickTint('#06b6d4')" class="w-6 h-6 rounded-full bg-cyan-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setQuickTint('#8b5cf6')" class="w-6 h-6 rounded-full bg-violet-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setQuickTint('#ec4899')" class="w-6 h-6 rounded-full bg-pink-500 border border-white/20 hover:scale-110 transition"></button>
+                            </div>
+                        </div>
+
+                        <!-- Tint Intensity Slider -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="text-slate-300">Intensitas Overlay Warna</label>
+                                <span id="val-tintOpacity" class="font-mono text-indigo-300">0%</span>
+                            </div>
+                            <input type="range" id="ctrl-tintOpacity" min="0" max="85" value="0">
+                        </div>
+
+                        <!-- Blend Mode Select -->
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-slate-300 block">Mode Perpaduan (Blend Mode)</label>
+                            <select id="ctrl-blendMode" class="w-full px-3 py-2 rounded-lg bg-studio-800 border border-studio-700 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="overlay">Overlay (Kontras & Warna)</option>
+                                <option value="multiply">Multiply (Gelap Pekat)</option>
+                                <option value="screen">Screen (Cahaya Lembut)</option>
+                                <option value="color">Color (Rona Murni)</option>
+                                <option value="soft-light">Soft Light (Halus)</option>
+                                <option value="hard-light">Hard Light (Dramatis)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: TRANSFORMASI & RASIO KANVAS -->
+                <div id="tabContent-transform" class="hidden space-y-6">
+                    
+                    <!-- Rotate & Flip -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i class="ph-fill ph-arrows-clockwise text-indigo-400"></i> Putar & Balik Gambar
+                        </h3>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button onclick="rotateImage(-90)" class="p-3 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition">
+                                <i class="ph-bold ph-arrow-counter-clockwise text-lg text-indigo-400"></i>
+                                <span>Putar Kiri 90°</span>
+                            </button>
+                            <button onclick="rotateImage(90)" class="p-3 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition">
+                                <i class="ph-bold ph-arrow-clockwise text-lg text-indigo-400"></i>
+                                <span>Putar Kanan 90°</span>
+                            </button>
+                            <button onclick="flipImage('h')" id="btnFlipH" class="p-3 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition">
+                                <i class="ph-bold ph-flip-horizontal text-lg text-emerald-400"></i>
+                                <span>Balik Horizontal</span>
+                            </button>
+                            <button onclick="flipImage('v')" id="btnFlipV" class="p-3 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition">
+                                <i class="ph-bold ph-flip-vertical text-lg text-emerald-400"></i>
+                                <span>Balik Vertikal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aspect Ratio Crop -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i class="ph-fill ph-crop text-amber-400"></i> Rasio Pemotongan Kanvas
+                        </h3>
+                        <p class="text-xs text-slate-400">Memotong bagian tengah gambar sesuai rasio bidang yang dipilih.</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setCropRatio('original')" data-ratio="original" class="ratio-btn py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold border border-indigo-500 transition">
+                                Asli (Bebas)
+                            </button>
+                            <button onclick="setCropRatio('1:1')" data-ratio="1:1" class="ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition">
+                                1 : 1 (Persegi)
+                            </button>
+                            <button onclick="setCropRatio('4:3')" data-ratio="4:3" class="ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition">
+                                4 : 3 (Klasik)
+                            </button>
+                            <button onclick="setCropRatio('16:9')" data-ratio="16:9" class="ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition">
+                                16 : 9 (Layar Lebar)
+                            </button>
+                            <button onclick="setCropRatio('3:4')" data-ratio="3:4" class="ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition">
+                                3 : 4 (Potret)
+                            </button>
+                            <button onclick="setCropRatio('9:16')" data-ratio="9:16" class="ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition">
+                                9 : 16 (Story)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: TEKS & WATERMARK -->
+                <div id="tabContent-text" class="hidden space-y-5">
+                    <div class="p-4 rounded-xl bg-studio-950/70 border border-studio-800 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                                <i class="ph-fill ph-text-aa text-indigo-400"></i> Teks / Watermark
+                            </h3>
+                            <button onclick="clearTextWatermark()" class="text-xs text-rose-400 hover:text-rose-300">Hapus Teks</button>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-xs text-slate-300">Isi Teks / Watermark</label>
+                            <input type="text" id="ctrl-textContent" placeholder="Ketik teks atau watermark di sini..." class="w-full px-3 py-2 rounded-lg bg-studio-800 border border-studio-700 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1.5">
+                                <label class="text-xs text-slate-300">Warna Teks</label>
+                                <label class="flex items-center gap-2 bg-studio-800 px-3 py-1.5 rounded-lg border border-studio-700 cursor-pointer">
+                                    <input type="color" id="ctrl-textColor" value="#ffffff" class="w-5 h-5 bg-transparent border-0 cursor-pointer">
+                                    <span id="textColorHex" class="text-xs font-mono text-slate-200">#FFFFFF</span>
+                                </label>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <label class="text-xs text-slate-300">Gaya Huruf</label>
+                                <select id="ctrl-textFont" class="w-full px-2.5 py-2 rounded-lg bg-studio-800 border border-studio-700 text-xs text-slate-200">
+                                    <option value="Inter, sans-serif">Modern Sans</option>
+                                    <option value="Georgia, serif">Klasik Serif</option>
+                                    <option value="'Courier New', monospace">Monospace</option>
+                                    <option value="Impact, sans-serif">Tebal Poster</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Font Size -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="text-slate-300">Ukuran Teks</label>
+                                <span id="val-textSize" class="font-mono text-indigo-300">42px</span>
+                            </div>
+                            <input type="range" id="ctrl-textSize" min="14" max="120" value="42">
+                        </div>
+
+                        <!-- Text Opacity -->
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs">
+                                <label class="text-slate-300">Opasitas Watermark</label>
+                                <span id="val-textOpacity" class="font-mono text-indigo-300">90%</span>
+                            </div>
+                            <input type="range" id="ctrl-textOpacity" min="15" max="100" value="90">
+                        </div>
+
+                        <!-- Shadow Toggle -->
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-xs text-slate-300">Bayangan Teks Gelap (Drop Shadow)</span>
+                            <input type="checkbox" id="ctrl-textShadow" checked class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </div>
+
+                        <!-- Quick Position Buttons -->
+                        <div class="space-y-2 pt-2 border-t border-studio-800">
+                            <label class="text-xs text-slate-400 block">Posisi Cepat (Atau geser langsung di kanvas)</label>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <button onclick="setTextPosition(0.18, 0.12)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Kiri Atas</button>
+                                <button onclick="setTextPosition(0.5, 0.12)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Tengah Atas</button>
+                                <button onclick="setTextPosition(0.82, 0.12)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Kanan Atas</button>
+                                <button onclick="setTextPosition(0.5, 0.5)" class="col-span-3 py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-200 font-medium">Tengah Kanvas</button>
+                                <button onclick="setTextPosition(0.18, 0.88)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Kiri Bawah</button>
+                                <button onclick="setTextPosition(0.5, 0.88)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Tengah Bawah</button>
+                                <button onclick="setTextPosition(0.82, 0.88)" class="py-1.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300">Kanan Bawah</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+    </main>
+
+    <!-- Export / Download Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-studio-900 border border-studio-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between">
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="ph-fill ph-download-simple text-indigo-400 text-xl"></i>
+                    Unduh Hasil Gambar
+                </h2>
+                <button id="closeExportModalBtn" class="text-slate-400 hover:text-white">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-300">Nama File</label>
+                    <input type="text" id="exportFileName" value="chromastudio-edit" class="w-full px-3 py-2 rounded-lg bg-studio-800 border border-studio-700 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-medium text-slate-300">Format Gambar</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="selectExportFormat('png')" id="fmt-png" class="py-2.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold border border-indigo-500">PNG (Tajam)</button>
+                        <button onclick="selectExportFormat('jpeg')" id="fmt-jpeg" class="py-2.5 rounded-lg bg-studio-800 text-slate-300 text-xs font-semibold border border-studio-700">JPG (Ringan)</button>
+                        <button onclick="selectExportFormat('webp')" id="fmt-webp" class="py-2.5 rounded-lg bg-studio-800 text-slate-300 text-xs font-semibold border border-studio-700">WEBP</button>
+                    </div>
+                </div>
+
+                <div id="qualityContainer" class="space-y-1.5 hidden">
+                    <div class="flex justify-between text-xs">
+                        <label class="text-slate-300">Kualitas Kompresi</label>
+                        <span id="val-exportQuality" class="font-mono text-indigo-300">92%</span>
+                    </div>
+                    <input type="range" id="ctrl-exportQuality" min="30" max="100" value="92">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button id="cancelExportBtn" class="px-4 py-2 rounded-lg bg-studio-800 hover:bg-studio-700 text-xs font-semibold text-slate-300">Batal</button>
+                <button id="confirmDownloadBtn" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 flex items-center gap-2">
+                    <i class="ph-bold ph-check"></i> Simpan ke Perangkat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-studio-800 border border-indigo-500/40 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-medium">
+        <i class="ph-fill ph-check-circle text-emerald-400 text-lg"></i>
+        <span id="toastMsg">Berhasil disimpan!</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const defaultState = {
+            brightness: 100,
+            contrast: 100,
+            saturation: 100,
+            hue: 0,
+            sepia: 0,
+            grayscale: 0,
+            invert: 0,
+            blur: 0,
+            opacity: 100,
+            vignette: 0,
+            presetName: 'Normal',
+            tintColor: '#6366f1',
+            tintOpacity: 0,
+            blendMode: 'overlay',
+            rotation: 0,
+            flipH: 1,
+            flipV: 1,
+            cropRatio: 'original',
+            textContent: '',
+            textColor: '#ffffff',
+            textFont: 'Inter, sans-serif',
+            textSize: 42,
+            textOpacity: 90,
+            textShadow: true,
+            textX: 0.5, // Normalized 0.0 - 1.0
+            textY: 0.88
+        };
+
+        let state = { ...defaultState };
+        let currentImage = new Image();
+        let isComparingOriginal = false;
+        let isDraggingText = false;
+        let exportFormat = 'png';
+
+        // DOM Elements
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const histCanvas = document.getElementById('histogramCanvas');
+        const histCtx = histCanvas.getContext('2d');
+
+        // Filter Preset Configurations
+        constfilterPresets = {
+            normal: { name: 'Normal', brightness: 100, contrast: 100, saturation: 100, hue: 0, sepia: 0, grayscale: 0, invert: 0, vignette: 0, tintOpacity: 0 },
+            vintage: { name: 'Vintage', brightness: 105, contrast: 95, saturation: 75, hue: -8, sepia: 45, grayscale: 0, invert: 0, vignette: 35, tintColor: '#d97706', tintOpacity: 15, blendMode: 'overlay' },
+            warm: { name: 'Warm Senja', brightness: 104, contrast: 106, saturation: 120, hue: -5, sepia: 18, grayscale: 0, invert: 0, vignette: 15, tintColor: '#f59e0b', tintOpacity: 18, blendMode: 'soft-light' },
+            cool: { name: 'Cool Dingin', brightness: 102, contrast: 108, saturation: 90, hue: 10, sepia: 0, grayscale: 0, invert: 0, vignette: 15, tintColor: '#06b6d4', tintOpacity: 22, blendMode: 'soft-light' },
+            cyberpunk: { name: 'Cyberpunk', brightness: 105, contrast: 130, saturation: 165, hue: -25, sepia: 0, grayscale: 0, invert: 0, vignette: 40, tintColor: '#ec4899', tintOpacity: 25, blendMode: 'screen' },
+            noir: { name: 'Film Noir', brightness: 95, contrast: 145, saturation: 0, hue: 0, sepia: 5, grayscale: 100, invert: 0, vignette: 55, tintOpacity: 0 },
+            dramatic: { name: 'Dramatic', brightness: 92, contrast: 140, saturation: 80, hue: 0, sepia: 0, grayscale: 15, invert: 0, vignette: 50, tintColor: '#312e81', tintOpacity: 20, blendMode: 'overlay' },
+            emerald: { name: 'Hutan Sinema', brightness: 98, contrast: 118, saturation: 115, hue: 18, sepia: 10, grayscale: 0, invert: 0, vignette: 30, tintColor: '#10b981', tintOpacity: 16, blendMode: 'multiply' },
+            pastel: { name: 'Pastel Lembut', brightness: 112, contrast: 85, saturation: 85, hue: 5, sepia: 8, grayscale: 0, invert: 0, vignette: 0, tintColor: '#f472b6', tintOpacity: 14, blendMode: 'screen' }
+        };
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            bindControlEvents();
+            loadSampleImage('portrait');
+        });
+
+        // --- SAMPLE IMAGE GENERATOR (Fallback-safe High Res Canvas/Unsplash) ---
+        function loadSampleImage(type) {
+            document.getElementById('sampleMenu').classList.add('hidden');
+            const sampleUrls = {
+                portrait: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85',
+                nature: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=85',
+                cybercity: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=85',
+                vintagecar: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=1200&q=85'
+            };
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                currentImage = img;
+                renderCanvas();
+                showToast('Gambar contoh berhasil dimuat');
+            };
+            img.onerror = () => {
+                // Procedural fallback artwork if offline or blocked
+                createProceduralSampleImage(type);
+            };
+            img.src = sampleUrls[type] || sampleUrls.portrait;
+        }
+
+        function createProceduralSampleImage(theme) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 1000;
+            tempCanvas.height = 700;
+            const tCtx = tempCanvas.getContext('2d');
+
+            const grad = tCtx.createLinearGradient(0, 0, 1000, 700);
+            if (theme === 'nature') {
+                grad.addColorStop(0, '#0f172a');
+                grad.addColorStop(0.5, '#047857');
+                grad.addColorStop(1, '#f59e0b');
+            } else if (theme === 'cybercity') {
+                grad.addColorStop(0, '#090d16');
+                grad.addColorStop(0.5, '#701a75');
+                grad.addColorStop(1, '#06b6d4');
+            } else {
+                grad.addColorStop(0, '#312e81');
+                grad.addColorStop(0.5, '#9333ea');
+                grad.addColorStop(1, '#f43f5e');
+            }
+            tCtx.fillStyle = grad;
+            tCtx.fillRect(0, 0, 1000, 700);
+
+            // Geometric sun & mountains
+            tCtx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+            tCtx.beginPath();
+            tCtx.arc(720, 220, 130, 0, Math.PI * 2);
+            tCtx.fill();
+
+            tCtx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+            tCtx.beginPath();
+            tCtx.moveTo(0, 700);
+            tCtx.lineTo(300, 340);
+            tCtx.lineTo(620, 700);
+            tCtx.fill();
+
+            tCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            tCtx.beginPath();
+            tCtx.moveTo(380, 700);
+            tCtx.lineTo(730, 290);
+            tCtx.lineTo(1000, 700);
+            tCtx.fill();
+
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+                currentImage = fallbackImg;
+                renderCanvas();
+            };
+            fallbackImg.src = tempCanvas.toDataURL();
+        }
+
+        // --- MAIN RENDERING ENGINE ---
+        function renderCanvas() {
+            if (!currentImage || !currentImage.width) return;
+
+            // 1. Determine source crop rectangle based on aspect ratio
+            const srcW = currentImage.naturalWidth || currentImage.width;
+            const srcH = currentImage.naturalHeight || currentImage.height;
+            let cropX = 0, cropY = 0, cropW = srcW, cropH = srcH;
+
+            if (state.cropRatio !== 'original') {
+                const [rw, rh] = state.cropRatio.split(':').map(Number);
+                const targetRatio = rw / rh;
+                const currentRatio = srcW / srcH;
+
+                if (currentRatio > targetRatio) {
+                    cropW = Math.round(srcH * targetRatio);
+                    cropX = Math.round((srcW - cropW) / 2);
+                } else {
+                    cropH = Math.round(srcW / targetRatio);
+                    cropY = Math.round((srcH - cropH) / 2);
+                }
+            }
+
+            // 2. Determine output dimensions considering 90/270 deg rotation
+            const isRotated90 = Math.abs(state.rotation % 180) === 90;
+            const outW = isRotated90 ? cropH : cropW;
+            const outH = isRotated90 ? cropW : cropH;
+
+            canvas.width = outW;
+            canvas.height = outH;
+
+            document.getElementById('imageDimensions').textContent = `${outW} × ${outH} px`;
+
+            ctx.save();
+            ctx.clearRect(0, 0, outW, outH);
+
+            // 3. Apply CSS/Canvas Filter String (unless holding "Before" comparison)
+            if (!isComparingOriginal) {
+                const filterString = [
+                    `brightness(${state.brightness}%)`,
+                    `contrast(${state.contrast}%)`,
+                    `saturate(${state.saturation}%)`,
+                    `hue-rotate(${state.hue}deg)`,
+                    `sepia(${state.sepia}%)`,
+                    `grayscale(${state.grayscale}%)`,
+                    `invert(${state.invert}%)`,
+                    `blur(${state.blur}px)`,
+                    `opacity(${state.opacity}%)`
+                ].join(' ');
+                ctx.filter = filterString;
+            } else {
+                ctx.filter = 'none';
+            }
+
+            // 4. Apply Transformations (Translate to center, Rotate, Flip)
+            ctx.translate(outW / 2, outH / 2);
+            if (!isComparingOriginal) {
+                ctx.rotate((state.rotation * Math.PI) / 180);
+                ctx.scale(state.flipH, state.flipV);
+            } else if (isRotated90) {
+                // Keep orientation consistent during comparison
+                ctx.rotate((state.rotation * Math.PI) / 180);
+            }
+
+            // Draw the cropped image centered
+            ctx.drawImage(
+                currentImage,
+                cropX, cropY, cropW, cropH,
+                -cropW / 2, -cropH / 2, cropW, cropH
+            );
+            ctx.restore();
+
+            // 5. Apply Color Overlay / Tint
+            if (!isComparingOriginal && state.tintOpacity > 0) {
+                ctx.save();
+                ctx.globalCompositeOperation = state.blendMode;
+                ctx.globalAlpha = state.tintOpacity / 100;
+                ctx.fillStyle = state.tintColor;
+                ctx.fillRect(0, 0, outW, outH);
+                ctx.restore();
+            }
+
+            // 6. Apply Vignette Effect
+            if (!isComparingOriginal && state.vignette > 0) {
+                ctx.save();
+                const radius = Math.max(outW, outH) * 0.75;
+                const grad = ctx.createRadialGradient(
+                    outW / 2, outH / 2, radius * 0.25,
+                    outW / 2, outH / 2, radius
+                );
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, `rgba(0,0,0,${(state.vignette / 100) * 0.88})`);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, outW, outH);
+                ctx.restore();
+            }
+
+            // 7. Draw Watermark / Text Overlay
+            if (!isComparingOriginal && state.textContent.trim() !== '') {
+                ctx.save();
+                const scaledFontSize = Math.round((state.textSize / 600) * Math.max(outW, outH));
+                ctx.font = `700 ${scaledFontSize}px ${state.textFont}`;
+                ctx.fillStyle = state.textColor;
+                ctx.globalAlpha = state.textOpacity / 100;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (state.textShadow) {
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+                    ctx.shadowBlur = Math.max(4, scaledFontSize * 0.15);
+                    ctx.shadowOffsetX = 2;
+                    ctx.shadowOffsetY = 2;
+                }
+
+                const posX = state.textX * outW;
+                const posY = state.textY * outH;
+                ctx.fillText(state.textContent, posX, posY);
+                ctx.restore();
+            }
+
+            // 8. Update Live RGB Histogram
+            updateHistogram();
+        }
+
+        // --- LIVE RGB HISTOGRAM ---
+        function updateHistogram() {
+            if (!canvas.width || !canvas.height) return;
+
+            // Sample down for super fast performance
+            const sampleW = 120;
+            const sampleH = 90;
+            const temp = document.createElement('canvas');
+            temp.width = sampleW;
+            temp.height = sampleH;
+            const tCtx = temp.getContext('2d');
+            tCtx.drawImage(canvas, 0, 0, sampleW, sampleH);
+
+            let imgData;
+            try {
+                imgData = tCtx.getImageData(0, 0, sampleW, sampleH).data;
+            } catch (e) {
+                return;
+            }
+
+            const rHist = new Array(64).fill(0);
+            const gHist = new Array(64).fill(0);
+            const bHist = new Array(64).fill(0);
+
+            for (let i = 0; i < imgData.length; i += 4) {
+                rHist[imgData[i] >> 2]++;
+                gHist[imgData[i + 1] >> 2]++;
+                bHist[imgData[i + 2] >> 2]++;
+            }
+
+            const maxVal = Math.max(...rHist, ...gHist, ...bHist, 1);
+            const w = histCanvas.width;
+            const h = histCanvas.height;
+
+            histCtx.clearRect(0, 0, w, h);
+            histCtx.globalCompositeOperation = 'screen';
+
+            const drawChannel = (hist, color) => {
+                histCtx.fillStyle = color;
+                histCtx.beginPath();
+                histCtx.moveTo(0, h);
+                for (let i = 0; i < 64; i++) {
+                    const x = (i / 63) * w;
+                    const y = h - (hist[i] / maxVal) * (h - 6);
+                    histCtx.lineTo(x, y);
+                }
+                histCtx.lineTo(w, h);
+                histCtx.closePath();
+                histCtx.fill();
+            };
+
+            drawChannel(rHist, 'rgba(244, 63, 94, 0.65)');
+            drawChannel(gHist, 'rgba(16, 185, 129, 0.65)');
+            drawChannel(bHist, 'rgba(59, 130, 246, 0.65)');
+        }
+
+        // --- UI & CONTROLS BINDING ---
+        function bindControlEvents() {
+            const sliderMap = [
+                { id: 'brightness', unit: '%' },
+                { id: 'contrast', unit: '%' },
+                { id: 'saturation', unit: '%' },
+                { id: 'hue', unit: '°' },
+                { id: 'sepia', unit: '%' },
+                { id: 'grayscale', unit: '%' },
+                { id: 'invert', unit: '%' },
+                { id: 'blur', unit: 'px' },
+                { id: 'opacity', unit: '%' },
+                { id: 'vignette', unit: '%' }
+            ];
+
+            sliderMap.forEach(({ id, unit }) => {
+                const el = document.getElementById(`ctrl-${id}`);
+                const valEl = document.getElementById(`val-${id}`);
+                el.addEventListener('input', (e) => {
+                    state[id] = parseFloat(e.target.value);
+                    valEl.textContent = `${state[id]}${unit}`;
+                    renderCanvas();
+                });
+            });
+
+            // Color Overlay Controls
+            document.getElementById('ctrl-tintColor').addEventListener('input', (e) => {
+                state.tintColor = e.target.value;
+                document.getElementById('tintColorHexLabel').textContent = e.target.value.toUpperCase();
+                if (state.tintOpacity === 0) {
+                    state.tintOpacity = 25;
+                    document.getElementById('ctrl-tintOpacity').value = 25;
+                    document.getElementById('val-tintOpacity').textContent = '25%';
+                }
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-tintOpacity').addEventListener('input', (e) => {
+                state.tintOpacity = parseInt(e.target.value, 10);
+                document.getElementById('val-tintOpacity').textContent = `${state.tintOpacity}%`;
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-blendMode').addEventListener('change', (e) => {
+                state.blendMode = e.target.value;
+                renderCanvas();
+            });
+
+            // Text / Watermark Controls
+            document.getElementById('ctrl-textContent').addEventListener('input', (e) => {
+                state.textContent = e.target.value;
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-textColor').addEventListener('input', (e) => {
+                state.textColor = e.target.value;
+                document.getElementById('textColorHex').textContent = e.target.value.toUpperCase();
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-textFont').addEventListener('change', (e) => {
+                state.textFont = e.target.value;
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-textSize').addEventListener('input', (e) => {
+                state.textSize = parseInt(e.target.value, 10);
+                document.getElementById('val-textSize').textContent = `${state.textSize}px`;
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-textOpacity').addEventListener('input', (e) => {
+                state.textOpacity = parseInt(e.target.value, 10);
+                document.getElementById('val-textOpacity').textContent = `${state.textOpacity}%`;
+                renderCanvas();
+            });
+
+            document.getElementById('ctrl-textShadow').addEventListener('change', (e) => {
+                state.textShadow = e.target.checked;
+                renderCanvas();
+            });
+
+            // File Upload Input
+            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+            // Drag & Drop Events
+            const dropZone = document.getElementById('dropZone');
+            const dragOverlay = document.getElementById('dragOverlay');
+
+            ['dragenter', 'dragover'].forEach(evt => {
+                dropZone.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    dragOverlay.classList.remove('hidden');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(evt => {
+                dropZone.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    dragOverlay.classList.add('hidden');
+                });
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    loadFileIntoEditor(file);
+                }
+            });
+
+            // Sample Images Dropdown Toggle
+            const sampleBtn = document.getElementById('sampleBtn');
+            const sampleMenu = document.getElementById('sampleMenu');
+            sampleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sampleMenu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => sampleMenu.classList.add('hidden'));
+
+            // Before / After Compare Button (Mouse & Touch)
+            const compareBtn = document.getElementById('compareBtn');
+            const beforeBadge = document.getElementById('beforeBadge');
+            const startCompare = () => {
+                isComparingOriginal = true;
+                beforeBadge.classList.remove('hidden');
+                renderCanvas();
+            };
+            const endCompare = () => {
+                isComparingOriginal = false;
+                beforeBadge.classList.add('hidden');
+                renderCanvas();
+            };
+            compareBtn.addEventListener('mousedown', startCompare);
+            compareBtn.addEventListener('mouseup', endCompare);
+            compareBtn.addEventListener('mouseleave', endCompare);
+            compareBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startCompare(); });
+            compareBtn.addEventListener('touchend', endCompare);
+
+            // Auto Magic Enhance Button
+            document.getElementById('magicEnhanceBtn').addEventListener('click', () => {
+                state.brightness = 106;
+                state.contrast = 114;
+                state.saturation = 122;
+                state.vignette = 18;
+                syncSlidersWithState();
+                renderCanvas();
+                showToast('Peningkatan warna otomatis diterapkan!');
+            });
+
+            // Reset All Button
+            document.getElementById('resetAllBtn').addEventListener('click', () => {
+                state = { ...defaultState };
+                syncSlidersWithState();
+                highlightPresetCard('normal');
+                highlightCropButton('original');
+                renderCanvas();
+                showToast('Semua pengaturan dikembalikan ke awal');
+            });
+
+            // Canvas Click for Eyedropper & Dragging Watermark
+            canvas.addEventListener('mousedown', handleCanvasPointerDown);
+            canvas.addEventListener('mousemove', handleCanvasPointerMove);
+            window.addEventListener('mouseup', () => { isDraggingText = false; });
+
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) handleCanvasPointerDown(e.touches[0]);
+            }, { passive: true });
+            canvas.addEventListener('touchmove', (e) => {
+                if (isDraggingText && e.touches.length === 1) {
+                    e.preventDefault();
+                    handleCanvasPointerMove(e.touches[0]);
+                }
+            }, { passive: false });
+            window.addEventListener('touchend', () => { isDraggingText = false; });
+
+            // Copy HEX Button
+            document.getElementById('copyHexBtn').addEventListener('click', () => {
+                const hex = document.getElementById('pickedColorHex').textContent;
+                const tempInput = document.createElement('input');
+                tempInput.value = hex;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast(`Kode warna ${hex} disalin!`);
+            });
+
+            // Export Modal Controls
+            document.getElementById('openExportModalBtn').addEventListener('click', () => {
+                document.getElementById('exportModal').classList.remove('hidden');
+            });
+            const closeExport = () => document.getElementById('exportModal').classList.add('hidden');
+            document.getElementById('closeExportModalBtn').addEventListener('click', closeExport);
+            document.getElementById('cancelExportBtn').addEventListener('click', closeExport);
+
+            document.getElementById('ctrl-exportQuality').addEventListener('input', (e) => {
+                document.getElementById('val-exportQuality').textContent = `${e.target.value}%`;
+            });
+
+            document.getElementById('confirmDownloadBtn').addEventListener('click', downloadEditedImage);
+        }
+
+        // --- CANVAS INTERACTION: EYEDROPPER & DRAG WATERMARK ---
+        function getCanvasRelativeCoords(pointerEvent) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (pointerEvent.clientX - rect.left) * scaleX;
+            const y = (pointerEvent.clientY - rect.top) * scaleY;
+            return { x, y };
+        }
+
+        function handleCanvasPointerDown(e) {
+            const { x, y } = getCanvasRelativeCoords(e);
+
+            // Check if user clicked near watermark text to drag it
+            if (state.textContent.trim() !== '') {
+                const textPxX = state.textX * canvas.width;
+                const textPxY = state.textY * canvas.height;
+                const dist = Math.hypot(x - textPxX, y - textPxY);
+                if (dist < Math.max(canvas.width, canvas.height) * 0.14) {
+                    isDraggingText = true;
+                    return;
+                }
+            }
+
+            // Otherwise pick pixel color (Eyedropper)
+            try {
+                const pixel = ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+                const hex = '#' + [pixel[0], pixel[1], pixel[2]]
+                    .map(v => v.toString(16).padStart(2, '0'))
+                    .join('')
+                    .toUpperCase();
+                document.getElementById('pickedColorSwatch').style.backgroundColor = hex;
+                document.getElementById('pickedColorHex').textContent = hex;
+            } catch (err) {
+                // Ignore if cross-origin tainted
+            }
+        }
+
+        function handleCanvasPointerMove(e) {
+            if (!isDraggingText) return;
+            const { x, y } = getCanvasRelativeCoords(e);
+            state.textX = Math.min(0.95, Math.max(0.05, x / canvas.width));
+            state.textY = Math.min(0.95, Math.max(0.05, y / canvas.height));
+            renderCanvas();
+        }
+
+        // --- PRESET & SINGLE RESET HELPERS ---
+        function applyPreset(key) {
+            const p = constfilterPresets[key];
+            if (!p) return;
+
+            state.brightness = p.brightness;
+            state.contrast = p.contrast;
+            state.saturation = p.saturation;
+            state.hue = p.hue;
+            state.sepia = p.sepia;
+            state.grayscale = p.grayscale;
+            state.invert = p.invert;
+            state.vignette = p.vignette;
+            state.presetName = p.name;
+
+            if (p.tintColor) state.tintColor = p.tintColor;
+            state.tintOpacity = p.tintOpacity ?? 0;
+            if (p.blendMode) state.blendMode = p.blendMode;
+
+            syncSlidersWithState();
+            highlightPresetCard(key);
+            renderCanvas();
+        }
+
+        function highlightPresetCard(activeKey) {
+            document.querySelectorAll('.preset-card').forEach(btn => {
+                if (btn.dataset.preset === activeKey) {
+                    btn.classList.add('border-indigo-500');
+                    btn.classList.remove('border-transparent');
+                } else {
+                    btn.classList.remove('border-indigo-500');
+                    btn.classList.add('border-transparent');
+                }
+            });
+            document.getElementById('activePresetBadge').textContent = `Filter: ${state.presetName}`;
+        }
+
+        function resetSingle(prop, defaultVal) {
+            state[prop] = defaultVal;
+            syncSlidersWithState();
+            renderCanvas();
+        }
+
+        function setQuickTint(hex) {
+            state.tintColor = hex;
+            if (state.tintOpacity === 0) state.tintOpacity = 28;
+            syncSlidersWithState();
+            renderCanvas();
+        }
+
+        function resetTint() {
+            state.tintOpacity = 0;
+            syncSlidersWithState();
+            renderCanvas();
+        }
+
+        function syncSlidersWithState() {
+            const units = {
+                brightness: '%', contrast: '%', saturation: '%', hue: '°',
+                sepia: '%', grayscale: '%', invert: '%', blur: 'px',
+                opacity: '%', vignette: '%'
+            };
+            Object.keys(units).forEach(k => {
+                const input = document.getElementById(`ctrl-${k}`);
+                const label = document.getElementById(`val-${k}`);
+                if (input && label) {
+                    input.value = state[k];
+                    label.textContent = `${state[k]}${units[k]}`;
+                }
+            });
+
+            document.getElementById('ctrl-tintColor').value = state.tintColor;
+            document.getElementById('tintColorHexLabel').textContent = state.tintColor.toUpperCase();
+            document.getElementById('ctrl-tintOpacity').value = state.tintOpacity;
+            document.getElementById('val-tintOpacity').textContent = `${state.tintOpacity}%`;
+            document.getElementById('ctrl-blendMode').value = state.blendMode;
+
+            document.getElementById('ctrl-textContent').value = state.textContent;
+            document.getElementById('ctrl-textColor').value = state.textColor;
+            document.getElementById('textColorHex').textContent = state.textColor.toUpperCase();
+            document.getElementById('ctrl-textSize').value = state.textSize;
+            document.getElementById('val-textSize').textContent = `${state.textSize}px`;
+            document.getElementById('ctrl-textOpacity').value = state.textOpacity;
+            document.getElementById('val-textOpacity').textContent = `${state.textOpacity}%`;
+        }
+
+        // --- TRANSFORM & CROP FUNCTIONS ---
+        function rotateImage(deg) {
+            state.rotation = (state.rotation + deg) % 360;
+            renderCanvas();
+        }
+
+        function flipImage(axis) {
+            if (axis === 'h') {
+                state.flipH *= -1;
+                document.getElementById('btnFlipH').classList.toggle('border-indigo-500', state.flipH === -1);
+            } else {
+                state.flipV *= -1;
+                document.getElementById('btnFlipV').classList.toggle('border-indigo-500', state.flipV === -1);
+            }
+            renderCanvas();
+        }
+
+        function setCropRatio(ratio) {
+            state.cropRatio = ratio;
+            highlightCropButton(ratio);
+            renderCanvas();
+        }
+
+        function highlightCropButton(activeRatio) {
+            document.querySelectorAll('.ratio-btn').forEach(btn => {
+                if (btn.dataset.ratio === activeRatio) {
+                    btn.className = 'ratio-btn py-2.5 px-3 rounded-xl bg-indigo-600 text-white text-xs font-semibold border border-indigo-500 transition';
+                } else {
+                    btn.className = 'ratio-btn py-2.5 px-3 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-semibold border border-studio-700 transition';
+                }
+            });
+        }
+
+        // --- TEXT / WATERMARK HELPERS ---
+        function setTextPosition(nx, ny) {
+            state.textX = nx;
+            state.textY = ny;
+            if (!state.textContent.trim()) {
+                state.textContent = 'ChromaStudio';
+                document.getElementById('ctrl-textContent').value = state.textContent;
+            }
+            renderCanvas();
+        }
+
+        function clearTextWatermark() {
+            state.textContent = '';
+            document.getElementById('ctrl-textContent').value = '';
+            renderCanvas();
+        }
+
+        // --- FILE HANDLING ---
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) loadFileIntoEditor(file);
+        }
+
+        function loadFileIntoEditor(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImage = img;
+                    // Update export filename suggestion
+                    const baseName = file.name.replace(/\.[^/.]+$/, '');
+                    document.getElementById('exportFileName').value = `${baseName}-edit`;
+                    renderCanvas();
+                    showToast('Foto berhasil diunggah!');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tabName) {
+            const tabs = ['adjust', 'presets', 'transform', 'text'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`tabContent-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tabName) {
+                    content.classList.remove('hidden');
+                    btn.className = 'tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 bg-indigo-600 text-white shadow transition';
+                } else {
+                    content.classList.add('hidden');
+                    btn.className = 'tab-btn py-2 px-2 rounded-lg text-xs font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-studio-800/60 transition';
+                }
+            });
+        }
+
+        // --- EXPORT / DOWNLOAD ---
+        function selectExportFormat(fmt) {
+            exportFormat = fmt;
+            ['png', 'jpeg', 'webp'].forEach(f => {
+                const btn = document.getElementById(`fmt-${f}`);
+                if (f === fmt) {
+                    btn.className = 'py-2.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold border border-indigo-500';
+                } else {
+                    btn.className = 'py-2.5 rounded-lg bg-studio-800 text-slate-300 text-xs font-semibold border border-studio-700';
+                }
+            });
+
+            const qContainer = document.getElementById('qualityContainer');
+            if (fmt === 'jpeg' || fmt === 'webp') {
+                qContainer.classList.remove('hidden');
+            } else {
+                qContainer.classList.add('hidden');
+            }
+        }
+
+        function downloadEditedImage() {
+            const fileNameInput = document.getElementById('exportFileName').value.trim() || 'chromastudio-edit';
+            const quality = parseInt(document.getElementById('ctrl-exportQuality').value, 10) / 100;
+            const mimeType = `image/${exportFormat}`;
+            const ext = exportFormat === 'jpeg' ? 'jpg' : exportFormat;
+
+            // Ensure original comparison mode is off before exporting
+            isComparingOriginal = false;
+            renderCanvas();
+
+            try {
+                const dataUrl = canvas.toDataURL(mimeType, quality);
+                const link = document.createElement('a');
+                link.download = `${fileNameInput}.${ext}`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                document.getElementById('exportModal').classList.add('hidden');
+                showToast(`Gambar berhasil diunduh sebagai .${ext.toUpperCase()}!`);
+            } catch (err) {
+                showToast('Gagal mengunduh: Gambar dibatasi izin keamanan browser.');
+            }
+        }
+
+        // --- TOAST NOTIFICATION ---
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2800);
+        }
+    </script>
+</body>
+</html>
