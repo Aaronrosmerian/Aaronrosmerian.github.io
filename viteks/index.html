@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidioKeTeks AI - Ubah Video & Suara Jadi Tulisan</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .recording-pulse::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background-color: #ef4444;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 pointer-events-none flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl text-sm font-medium text-white">
+        <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toast-message">Berhasil disalin!</span>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+                    <i data-lucide="file-audio" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">
+                        VidioKeTeks <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 ml-1">AI</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Ubah Link Video TikTok, YouTube, File & Suara Menjadi Ketikan</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="loadDemoSample()" class="text-xs sm:text-sm px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                    <span>Contoh Demo</span>
+                </button>
+                <a href="#panduan" onclick="toggleGuideModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Panduan Penggunaan">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+
+            <!-- Left Column: Input Panel (5 Cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Mode Selector Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                        Pilih Sumber Video / Suara
+                    </label>
+                    <div class="grid grid-cols-3 gap-2 p-1.5 bg-slate-950 rounded-xl border border-slate-800/80">
+                        <button id="tab-link" onclick="switchTab('link')" class="tab-btn active-tab flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all bg-brand-600 text-white shadow-md">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                            <span>Link Video</span>
+                        </button>
+                        <button id="tab-file" onclick="switchTab('file')" class="tab-btn flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white">
+                            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                            <span>File Video/MP3</span>
+                        </button>
+                        <button id="tab-mic" onclick="switchTab('mic')" class="tab-btn flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white">
+                            <i data-lucide="mic" class="w-4 h-4"></i>
+                            <span>Rekam Suara</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: LINK VIDEO (TikTok, YT, IG, dll) -->
+                    <div id="panel-link" class="mt-5 space-y-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                            <i data-lucide="globe" class="w-4 h-4 text-brand-400 shrink-0"></i>
+                            <span>Mendukung link <b>YouTube, TikTok, Instagram Reels, X</b>, atau link video publik lainnya.</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-200 mb-1.5">Salin & Tempel Link Video</label>
+                            <div class="relative flex items-center">
+                                <i data-lucide="video" class="w-4 h-4 text-slate-400 absolute left-3.5"></i>
+                                <input id="video-url" type="url" placeholder="https://www.tiktok.com/@user/video/... atau https://youtu.be/..." 
+                                    oninput="detectPlatform(this.value)"
+                                    class="w-full pl-10 pr-20 py-3 bg-slate-950 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl text-sm text-white placeholder-slate-500 outline-none transition">
+                                <button onclick="pasteFromClipboard()" class="absolute right-2 px-2.5 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition">
+                                    Tempel
+                                </button>
+                            </div>
+                            <div id="platform-badge" class="hidden mt-2 flex items-center gap-2 text-xs font-medium text-emerald-400">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span id="platform-text">Link YouTube terdeteksi</span>
+                            </div>
+                        </div>
+
+                        <!-- YouTube Embed Preview if applicable -->
+                        <div id="yt-preview-container" class="hidden rounded-xl overflow-hidden border border-slate-800 bg-black aspect-video">
+                            <iframe id="yt-iframe" class="w-full h-full" src="" frameborder="0" allowfullscreen></iframe>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-200 mb-1.5">
+                                Konteks / Topik Video <span class="text-xs text-slate-400 font-normal">(Opsional, membantu akurasi AI)</span>
+                            </label>
+                            <textarea id="video-context" rows="2" placeholder="Contoh: Video TikTok penjelasan dr. Tirta tentang bahaya begadang, atau tempel caption video di sini..." 
+                                class="w-full p-3 bg-slate-950 border border-slate-700/80 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 rounded-xl text-sm text-white placeholder-slate-500 outline-none transition resize-none"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Bahasa Transkrip</label>
+                                <select id="transcribe-lang" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                                    <option value="Bahasa Indonesia">🇮🇩 Bahasa Indonesia</option>
+                                    <option value="Bahasa Inggris (terjemahkan ke Indonesia)">🇬🇧 Inggris ➔ Indonesia</option>
+                                    <option value="Sesuai Bahasa Asli di Video">🌐 Sesuai Bahasa Video</option>
+                                    <option value="Bahasa Jawa / Daerah (haluskan ke Indonesia)">🗣️ Bahasa Daerah ➔ Indo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Gaya Penulisan</label>
+                                <select id="transcribe-style" class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white outline-none focus:border-brand-500">
+                                    <option value="Transkrip Kata demi Kata (Lengkap dengan Timestamp)">⏱️ Lengkap + Timestamp</option>
+                                    <option value="Paragraf Rapi Siap Baca (Tanpa Timestamp)">📝 Paragraf Ketikan Rapi</option>
+                                    <option value="Dialog Percakapan (Pembicara 1, 2, dst)">👥 Format Dialog</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button id="btn-process-link" onclick="processVideoLink()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2 transition transform active:scale-[0.99]">
+                            <i data-lucide="wand-2" class="w-4 h-4"></i>
+                            <span>Ubah Link Video Menjadi Ketikan</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 2: UPLOAD FILE VIDEO / AUDIO LOKAL -->
+                    <div id="panel-file" class="hidden mt-5 space-y-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                            <i data-lucide="Lightbulb" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                            <span>Sudah download videonya dari TikTok/WA? Unggah file <b>MP4, MP3, WAV, M4A</b> di sini agar AI mendengar suaranya secara langsung!</span>
+                        </div>
+
+                        <div id="dropzone" onclick="document.getElementById('file-input').click()" 
+                            class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-950/50 hover:bg-slate-900/50 rounded-2xl p-6 text-center cursor-pointer transition group">
+                            <input id="file-input" type="file" accept="video/*,audio/*" class="hidden" onchange="handleFileSelect(event)">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800 group-hover:bg-brand-500/20 text-slate-400 group-hover:text-brand-400 flex items-center justify-center mx-auto mb-3 transition">
+                                <i data-lucide="file-video" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-sm font-medium text-slate-200">Klik untuk pilih file Video atau Audio</p>
+                            <p class="text-xs text-slate-400 mt-1">Format: MP4, WebM, MP3, WAV, M4A, OGG (Maks ~18MB)</p>
+                        </div>
+
+                        <!-- Preview Media Player -->
+                        <div id="media-preview-wrapper" class="hidden space-y-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                            <div class="flex items-center justify-between">
+                                <span id="file-name-badge" class="text-xs font-medium text-brand-400 truncate max-w-[220px]">video.mp4</span>
+                                <span id="file-size-badge" class="text-xs text-slate-400">2.4 MB</span>
+                            </div>
+                            <video id="local-video-preview" controls class="w-full rounded-lg max-h-48 bg-black hidden"></video>
+                            <audio id="local-audio-preview" controls class="w-full hidden"></audio>
+
+                            <!-- Dual Transcription Mode for Local File -->
+                            <div class="pt-2 flex flex-col gap-2">
+                                <button id="btn-process-file" onclick="processUploadedFile()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2 transition">
+                                    <i data-lucide="cpu" class="w-4 h-4"></i>
+                                    <span>Transkripsi Otomatis dengan Gemini AI</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: REKAM SUARA LANGSUNG / DENGARKAN VIDEO -->
+                    <div id="panel-mic" class="hidden mt-5 space-y-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                            <i data-lucide="mic" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                            <span>Gunakan mikrofon untuk <b>mendikte ketikan secara langsung</b> atau dekatkan HP yang sedang memutar video TikTok/YouTube ke mikrofon.</span>
+                        </div>
+
+                        <div class="flex flex-col items-center justify-center py-6 bg-slate-950 rounded-2xl border border-slate-800 relative overflow-hidden">
+                            <div class="relative z-10 mb-4">
+                                <button id="btn-record" onclick="toggleRecording()" class="w-20 h-20 rounded-full bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 flex items-center justify-center text-white transition-all shadow-xl">
+                                    <i id="record-icon" data-lucide="mic" class="w-8 h-8 text-rose-500"></i>
+                                </button>
+                            </div>
+                            <p id="record-status" class="text-sm font-semibold text-slate-200">Klik Mikrofon untuk Mulai Merekam</p>
+                            <p id="record-timer" class="text-xs font-mono text-slate-400 mt-1">00:00</p>
+
+                            <div class="mt-4 flex items-center gap-2">
+                                <label class="text-xs text-slate-400">Bahasa Suara:</label>
+                                <select id="speech-lang" onchange="updateSpeechLang()" class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white">
+                                    <option value="id-ID">🇮🇩 Bahasa Indonesia</option>
+                                    <option value="en-US">🇺🇸 English (US)</option>
+                                    <option value="jv-ID">🗣️ Bahasa Jawa</option>
+                                    <option value="su-ID">🗣️ Bahasa Sunda</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button id="btn-polish-mic" onclick="polishTranscriptWithAI()" class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-brand-400"></i>
+                                <span>Rapikan Tanda Baca & Ejaan dengan AI</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Riwayat Transkripsi Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="history" class="w-4 h-4 text-brand-400"></i>
+                            <span>Riwayat Transkripsi</span>
+                        </h2>
+                        <button onclick="clearHistory()" class="text-xs text-slate-400 hover:text-rose-400 transition">Hapus Semua</button>
+                    </div>
+                    <div id="history-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <!-- Diisi via JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Output & Editor Panel (7 Cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl flex flex-col min-h-[540px] overflow-hidden">
+                    
+                    <!-- Top Toolbar -->
+                    <div class="p-4 sm:px-6 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-900/50">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
+                            <h2 id="doc-title" class="font-semibold text-sm sm:text-base text-white truncate max-w-[220px] sm:max-w-xs">
+                                Hasil Transkrip Ketikan
+                            </h2>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center flex-wrap gap-2">
+                            <button onclick="copyTranscript()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition" title="Salin Ketikan">
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-brand-400"></i>
+                                <span>Salin Teks</span>
+                            </button>
+                            <button onclick="downloadTxt()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition" title="Unduh File .txt">
+                                <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span>Unduh .TXT</span>
+                            </button>
+                            <button onclick="clearEditor()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 transition" title="Bersihkan Editor">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Output Sub-Tabs (Transkrip Penuh vs Ringkasan AI) -->
+                    <div class="px-4 sm:px-6 pt-3 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/40">
+                        <div class="flex gap-4">
+                            <button id="out-tab-text" onclick="switchOutputView('text')" class="pb-2.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-500 text-brand-400 flex items-center gap-1.5 transition">
+                                <i data-lucide="align-left" class="w-4 h-4"></i>
+                                <span>Teks Ketikan Lengkap</span>
+                            </button>
+                            <button id="out-tab-summary" onclick="switchOutputView('summary')" class="pb-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition">
+                                <i data-lucide="list-checks" class="w-4 h-4"></i>
+                                <span>Ringkasan & Poin Penting</span>
+                            </button>
+                        </div>
+
+                        <!-- Stats Counter -->
+                        <div class="hidden sm:flex items-center gap-3 text-xs text-slate-400 pb-2">
+                            <span id="word-count">0 kata</span>
+                            <span>•</span>
+                            <span id="char-count">0 karakter</span>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div id="loading-overlay" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/80 backdrop-blur-sm">
+                        <div class="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center mb-4">
+                            <i data-lucide="loader-2" class="w-7 h-7 text-brand-400 animate-spin"></i>
+                        </div>
+                        <h3 id="loading-title" class="text-base font-semibold text-white">Mengekstrak Ucapan Video...</h3>
+                        <p id="loading-subtitle" class="text-xs text-slate-400 max-w-md mt-1.5 leading-relaxed">
+                            AI sedang menganalisis isi pembicaraan di video dan menyusunnya menjadi teks ketikan yang rapi untuk Anda.
+                        </p>
+                    </div>
+
+                    <!-- Main Editable Transcript View -->
+                    <div id="view-text" class="flex-1 flex flex-col p-4 sm:p-6 relative">
+                        <textarea id="transcript-editor" oninput="updateStats()"
+                            placeholder="Hasil transkripsi dari video TikTok, YouTube, file rekaman, atau suara Anda akan muncul di sini. Anda juga bisa mengedit ketikan ini secara langsung..."
+                            class="w-full flex-1 min-h-[340px] bg-transparent text-slate-100 placeholder-slate-500 text-sm sm:text-base leading-relaxed outline-none resize-none font-normal"></textarea>
+
+                        <!-- Sources / Grounding Box -->
+                        <div id="sources-box" class="hidden mt-4 pt-3 border-t border-slate-800/80">
+                            <p class="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                                <i data-lucide="search" class="w-3.5 h-3.5 text-brand-400"></i>
+                                <span>Sumber Referensi Web Terkait Video:</span>
+                            </p>
+                            <div id="sources-list" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- AI Summary & Smart Tools View -->
+                    <div id="view-summary" class="hidden flex-1 flex flex-col p-4 sm:p-6 space-y-4 bg-slate-950/30">
+                        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+                            <div>
+                                <h3 class="text-sm font-semibold text-slate-200">Asisten Olah Teks AI</h3>
+                                <p class="text-xs text-slate-400">Ubah hasil ketikan video menjadi berbagai format catatan</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="generateAISummary('poin')" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium flex items-center gap-1.5 transition">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                    <span>Buat Poin Penting</span>
+                                </button>
+                                <button onclick="generateAISummary('artikel')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+                                    <i data-lucide="newspaper" class="w-3.5 h-3.5 text-purple-400"></i>
+                                    <span>Jadikan Artikel/Blog</span>
+                                </button>
+                                <button onclick="generateAISummary('caption')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+                                    <i data-lucide="share-2" class="w-3.5 h-3.5 text-pink-400"></i>
+                                    <span>Buat Caption Medsos</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="summary-content" class="flex-1 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap overflow-y-auto max-h-[360px] p-4 rounded-xl bg-slate-950 border border-slate-800/90">
+Klik salah satu tombol di atas ("Buat Poin Penting", "Jadikan Artikel", atau "Buat Caption") setelah transkrip tersedia untuk mengolah isi pembicaraan video secara instan.
+                        </div>
+                    </div>
+
+                    <!-- Bottom Quick AI Bar -->
+                    <div class="px-4 sm:px-6 py-3 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs text-slate-400">Aksi Cepat AI:</span>
+                            <button onclick="quickTransform('Rapikan tanda baca, huruf kapital, dan ubah menjadi paragraf Bahasa Indonesia yang baku dan enak dibaca tanpa mengurangi isi pembicaraan')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+                                ✨ Rapikan Ketikan
+                            </button>
+                            <button onclick="quickTransform('Terjemahkan seluruh transkrip ini ke dalam Bahasa Indonesia yang alami')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+                                🇮🇩 Terjemahkan ke Indo
+                            </button>
+                            <button onclick="quickTransform('Hilangkan semua penanda waktu (timestamp) sehingga menjadi teks esai/ketikan bersih yang menyatu')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+                                🧹 Hapus Timestamp
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-slate-500">Ditenagai Gemini 3 Flash</span>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Panduan Penggunaan -->
+    <div id="guide-modal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-5 h-5 text-brand-400"></i>
+                    <span>Cara Mengubah Video Jadi Tulisan</span>
+                </h3>
+                <button onclick="toggleGuideModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <p class="font-semibold text-brand-400 mb-1">1. Menggunakan Link Video (TikTok, YouTube, IG)</p>
+                    <p>Salin tautan video dari YouTube, TikTok, atau Reels lalu tempel di tab <b>Link Video</b>. AI akan menggunakan Google Search Grounding untuk mencari informasi/transkrip video tersebut. Tambahkan sedikit keterangan di kolom konteks agar hasilnya makin akurat.</p>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <p class="font-semibold text-emerald-400 mb-1">2. Mengunggah File Video / Audio (Paling Akurat 100%)</p>
+                    <p>Jika Anda memiliki file videonya di HP/Laptop (MP4/MP3/WAV), pilih tab <b>File Video/MP3</b>. Gemini AI akan mendengarkan langsung suara orang yang berbicara di dalam video tersebut kata demi kata.</p>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <p class="font-semibold text-rose-400 mb-1">3. Rekam Suara / Putar Video di Dekat Mic</p>
+                    <p>Gunakan tab <b>Rekam Suara</b> untuk mendikte ketikan secara langsung atau dekatkan speaker HP yang sedang memutar video TikTok ke mikrofon perangkat Anda.</p>
+                </div>
+            </div>
+            <div class="pt-2 text-right">
+                <button onclick="toggleGuideModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold">
+                    Mengerti, Mulai Gunakan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI GEMINI API ---
+        const apiKey = ""; // Disediakan otomatis oleh lingkungan runtime Canvas
+        const GEMINI_MODEL = "gemini-3-flash-preview";
+
+        // State Aplikasi
+        let currentTab = 'link';
+        let selectedFileBase64 = null;
+        let selectedFileMimeType = null;
+        let selectedFileName = "";
+        let isRecording = false;
+        let recognition = null;
+        let recordSeconds = 0;
+        let recordInterval = null;
+        let transcriptHistory = [];
+
+        // Inisialisasi saat halaman dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initSpeechRecognition();
+            loadHistoryFromStorage();
+            updateStats();
+        });
+
+        // Helper: Exponential Backoff Fetch untuk Gemini API
+        async function callGeminiAPI(payload) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+            const delays = [1000, 2000, 4000, 8000];
+            
+            for (let attempt = 0; attempt <= delays.length; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errText}`);
+                    }
+
+                    return await response.json();
+                } catch (err) {
+                    if (attempt === delays.length) {
+                        throw err;
+                    }
+                    await new Promise(r => setTimeout(r, delays[attempt]));
+                }
+            }
+        }
+
+        // --- NAVIGASI TAB ---
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabs = ['link', 'file', 'mic'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const panel = document.getElementById(`panel-${t}`);
+                if (t === tab) {
+                    btn.className = "tab-btn flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all bg-brand-600 text-white shadow-md";
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = "tab-btn flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-white";
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        function switchOutputView(view) {
+            const btnText = document.getElementById('out-tab-text');
+            const btnSummary = document.getElementById('out-tab-summary');
+            const viewText = document.getElementById('view-text');
+            const viewSummary = document.getElementById('view-summary');
+
+            if (view === 'text') {
+                btnText.className = "pb-2.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-500 text-brand-400 flex items-center gap-1.5 transition";
+                btnSummary.className = "pb-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition";
+                viewText.classList.remove('hidden');
+                viewSummary.classList.add('hidden');
+            } else {
+                btnSummary.className = "pb-2.5 text-xs sm:text-sm font-semibold border-b-2 border-brand-500 text-brand-400 flex items-center gap-1.5 transition";
+                btnText.className = "pb-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition";
+                viewSummary.classList.remove('hidden');
+                viewText.classList.add('hidden');
+            }
+        }
+
+        // --- FITUR 1: DETEKSI & PROSES LINK VIDEO (TikTok, YouTube, IG, dll) ---
+        function detectPlatform(url) {
+            const badge = document.getElementById('platform-badge');
+            const badgeText = document.getElementById('platform-text');
+            const ytContainer = document.getElementById('yt-preview-container');
+            const ytIframe = document.getElementById('yt-iframe');
+
+            const trimmed = url.trim();
+            if (!trimmed) {
+                badge.classList.add('hidden');
+                ytContainer.classList.add('hidden');
+                ytIframe.src = "";
+                return;
+            }
+
+            let platform = "Link Video Web";
+            if (trimmed.includes('tiktok.com')) platform = "Video TikTok Terdeteksi";
+            else if (trimmed.includes('youtube.com') || trimmed.includes('youtu.be')) platform = "Video YouTube Terdeteksi";
+            else if (trimmed.includes('instagram.com')) platform = "Video Instagram Reels/Post Terdeteksi";
+            else if (trimmed.includes('twitter.com') || trimmed.includes('x.com')) platform = "Video X / Twitter Terdeteksi";
+            else if (trimmed.includes('facebook.com') || trimmed.includes('fb.watch')) platform = "Video Facebook Terdeteksi";
+
+            badgeText.textContent = platform;
+            badge.classList.remove('hidden');
+
+            // Jika YouTube, tampilkan preview embed
+            const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            if (ytMatch && ytMatch[1]) {
+                ytIframe.src = `https://www.youtube.com/embed/${ytMatch[1]}`;
+                ytContainer.classList.remove('hidden');
+            } else {
+                ytContainer.classList.add('hidden');
+                ytIframe.src = "";
+            }
+        }
+
+        async function pasteFromClipboard() {
+            const input = document.getElementById('video-url');
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    input.value = text;
+                    detectPlatform(text);
+                    showToast("Link berhasil ditempel!", "check-circle");
+                }
+            } catch (e) {
+                input.focus();
+                showToast("Silakan tekan Ctrl+V atau tahan lalu Tempel pada kolom link", "info");
+            }
+        }
+
+        async function processVideoLink() {
+            const url = document.getElementById('video-url').value.trim();
+            const context = document.getElementById('video-context').value.trim();
+            const lang = document.getElementById('transcribe-lang').value;
+            const style = document.getElementById('transcribe-style').value;
+
+            if (!url && !context) {
+                showToast("Masukkan link video (TikTok/YouTube/IG) terlebih dahulu!", "alert-circle");
+                return;
+            }
+
+            setLoading(true, "Menelusuri & Mengekstrak Isi Pembicaraan Video...", "Gemini AI sedang mencari informasi transkrip dari link video dan mengubahnya menjadi teks ketikan.");
+
+            const systemInstruction = `Anda adalah asisten AI spesialis Transkripsi Video ke Teks (Video-to-Text Transcriber) profesional dalam Bahasa Indonesia.
+Tugas utama Anda adalah membantu pengguna mengubah video dari link (YouTube, TikTok, Instagram, dll) menjadi teks ketikan/tulisan dari apa yang dibicarakan orang di dalam video tersebut.
+Aturan penting:
+1. Gunakan Google Search untuk mencari judul, isi ucapan, transkrip, atau topik dari URL video yang diberikan pengguna.
+2. Jika transkrip persis kata-demi-kata tersedia di web, tuliskan secara lengkap. Jika sebagian atau hanya konteks/topik video yang ditemukan, susunlah transkrip monolog/dialog ucapan yang sangat natural, lengkap, dan akurat sesuai isi pembicaraan di video atau konteks yang diberikan pengguna.
+3. Jangan menolak permintaan; selalu berikan hasil teks ketikan transkrip yang langsung bisa disalin oleh pengguna.
+4. Ikuti gaya penulisan dan bahasa yang diminta pengguna.`;
+
+            const userPrompt = `Tolong buatkan teks ketikan / transkripsi dari video berikut:
+- Link Video: ${url || '(Tidak ada link, gunakan konteks)'}
+- Konteks / Keterangan Tambahan dari Pengguna: ${context || '(Tidak ada keterangan tambahan, telusuri otomatis dari link)'}
+- Bahasa Output: ${lang}
+- Format / Gaya Ketikan: ${style}
+
+Tuliskan langsung hasil transkripsi ketikannya secara lengkap dan jelas.`;
+
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] }
+                };
+
+                const result = await callGeminiAPI(payload);
+                const candidate = result.candidates?.[0];
+                const generatedText = candidate?.content?.parts?.[0]?.text;
+
+                if (generatedText) {
+                    const editor = document.getElementById('transcript-editor');
+                    editor.value = generatedText.trim();
+                    document.getElementById('doc-title').textContent = url ? `Transkrip: ${url}` : "Transkrip Video";
+                    updateStats();
+                    switchOutputView('text');
+
+                    // Tampilkan sumber pencarian jika ada
+                    const attributions = candidate?.groundingMetadata?.groundingAttributions || [];
+                    renderSources(attributions);
+
+                    saveToHistory(url || context.substring(0, 40), generatedText.trim(), "Link Video");
+                    showToast("Video berhasil dijadikan teks ketikan!", "check-circle");
+                } else {
+                    throw new Error("Respons AI kosong.");
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("Gagal memproses link. Coba tambahkan deskripsi singkat di kolom Konteks.", "alert-triangle");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function renderSources(attributions) {
+            const box = document.getElementById('sources-box');
+            const list = document.getElementById('sources-list');
+            list.innerHTML = "";
+
+            const validSources = attributions
+                .map(a => ({ uri: a.web?.uri, title: a.web?.title }))
+                .filter(s => s.uri && s.title);
+
+            if (validSources.length === 0) {
+                box.classList.add('hidden');
+                return;
+            }
+
+            validSources.slice(0, 4).forEach(src => {
+                const a = document.createElement('a');
+                a.href = src.uri;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                a.className = "text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-brand-400 border border-slate-800 truncate max-w-[220px] transition flex items-center gap-1";
+                a.innerHTML = `<i data-lucide="external-link" class="w-3 h-3 shrink-0"></i><span class="truncate">${src.title}</span>`;
+                list.appendChild(a);
+            });
+
+            box.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // --- FITUR 2: UNGGAH FILE VIDEO / AUDIO LOKAL (MULTIMODAL GEMINI) ---
+        function handleFileSelect(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            // Cek ukuran maksimal (~18MB untuk inlineData base64)
+            const maxMB = 18;
+            if (file.size > maxMB * 1024 * 1024) {
+                showToast(`Ukuran file terlalu besar (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimal ${maxMB}MB.`, "alert-circle");
+                return;
+            }
+
+            selectedFileName = file.name;
+            selectedFileMimeType = file.type || "audio/mp3";
+
+            document.getElementById('file-name-badge').textContent = file.name;
+            document.getElementById('file-size-badge').textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+            document.getElementById('media-preview-wrapper').classList.remove('hidden');
+
+            const videoPreview = document.getElementById('local-video-preview');
+            const audioPreview = document.getElementById('local-audio-preview');
+            const objectUrl = URL.createObjectURL(file);
+
+            if (file.type.startsWith('video/')) {
+                videoPreview.src = objectUrl;
+                videoPreview.classList.remove('hidden');
+                audioPreview.classList.add('hidden');
+            } else {
+                audioPreview.src = objectUrl;
+                audioPreview.classList.remove('hidden');
+                videoPreview.classList.add('hidden');
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const resultStr = e.target.result;
+                selectedFileBase64 = resultStr.split(',')[1];
+                showToast("File siap ditranskripsi oleh AI!", "check-circle");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function processUploadedFile() {
+            if (!selectedFileBase64) {
+                showToast("Pilih file video atau audio terlebih dahulu!", "alert-circle");
+                return;
+            }
+
+            setLoading(true, "Mendengarkan & Mengetik Ucapan dari File...", "Gemini AI sedang memproses suara di dalam file video/audio Anda menjadi ketikan teks lengkap.");
+
+            const prompt = `Dengarkan file video/audio ini dengan saksama. 
+Tugas Anda:
+1. Transkripsikan seluruh perkataan orang yang berbicara di dalam video/audio ini menjadi teks tulisan/ketikan yang akurat kata demi kata.
+2. Sertakan penanda waktu (timestamp seperti [00:05]) di setiap bagian kalimat/paragraf.
+3. Jika ada lebih dari satu pembicara, bedakan dengan label (misal: Pembicara 1, Pembicara 2).
+4. Gunakan ejaan dan tanda baca yang rapi dan mudah dibaca.`;
+
+            try {
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: selectedFileMimeType,
+                                    data: selectedFileBase64
+                                }
+                            }
+                        ]
+                    }]
+                };
+
+                const result = await callGeminiAPI(payload);
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    document.getElementById('transcript-editor').value = text.trim();
+                    document.getElementById('doc-title').textContent = `File: ${selectedFileName}`;
+                    document.getElementById('sources-box').classList.add('hidden');
+                    updateStats();
+                    switchOutputView('text');
+                    saveToHistory(selectedFileName, text.trim(), "File Lokal");
+                    showToast("Transkripsi file video/audio selesai!", "check-circle");
+                } else {
+                    throw new Error("Tidak dapat mengekstrak teks dari file.");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Gagal memproses file. Pastikan file memiliki suara yang jelas dan ukuran di bawah 18MB.", "alert-triangle");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- FITUR 3: REKAM SUARA LANGSUNG (WEB SPEECH API) ---
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('record-status').textContent = "Browser ini tidak mendukung Web Speech API langsung (Gunakan Chrome/Edge).";
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = document.getElementById('speech-lang').value || 'id-ID';
+
+            recognition.onresult = (event) => {
+                const editor = document.getElementById('transcript-editor');
+                let finalChunk = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalChunk += event.results[i][0].transcript + ' ';
+                    }
+                }
+
+                if (finalChunk) {
+                    const currentVal = editor.value;
+                    editor.value = (currentVal ? currentVal + ' ' : '') + finalChunk.trim();
+                    updateStats();
+                    editor.scrollTop = editor.scrollHeight;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.warn("Speech recognition warning:", event.error);
+                if (event.error === 'not-allowed') {
+                    stopRecordingUI();
+                    showToast("Izin mikrofon ditolak. Aktifkan izin mikrofon di browser Anda.", "alert-circle");
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    try { recognition.start(); } catch (e) {}
+                }
+            };
+        }
+
+        function updateSpeechLang() {
+            if (recognition) {
+                recognition.lang = document.getElementById('speech-lang').value;
+                if (isRecording) {
+                    recognition.stop();
+                }
+            }
+        }
+
+        function toggleRecording() {
+            if (!recognition) {
+                showToast("Fitur rekam langsung memerlukan browser Google Chrome atau Microsoft Edge.", "alert-circle");
+                return;
+            }
+
+            if (!isRecording) {
+                try {
+                    recognition.lang = document.getElementById('speech-lang').value;
+                    recognition.start();
+                    isRecording = true;
+
+                    const btn = document.getElementById('btn-record');
+                    btn.classList.add('recording-pulse', 'bg-rose-600', 'border-rose-400');
+                    btn.classList.remove('bg-slate-800', 'border-slate-600');
+                    document.getElementById('record-status').textContent = "Mendengarkan Suara... (Silakan Berbicara / Putar Video)";
+                    document.getElementById('doc-title').textContent = "Transkrip Rekaman Langsung";
+
+                    recordSeconds = 0;
+                    recordInterval = setInterval(() => {
+                        recordSeconds++;
+                        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+                        const secs = String(recordSeconds % 60).padStart(2, '0');
+                        document.getElementById('record-timer').textContent = `${mins}:${secs}`;
+                    }, 1000);
+
+                    showToast("Mulai mendengarkan suara...", "mic");
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                stopRecordingUI();
+                const currentText = document.getElementById('transcript-editor').value.trim();
+                if (currentText) {
+                    saveToHistory("Rekaman Suara (" + document.getElementById('record-timer').textContent + ")", currentText, "Mikrofon");
+                }
+                showToast("Rekaman suara dihentikan.", "check-circle");
+            }
+        }
+
+        function stopRecordingUI() {
+            isRecording = false;
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+            }
+            clearInterval(recordInterval);
+            const btn = document.getElementById('btn-record');
+            btn.classList.remove('recording-pulse', 'bg-rose-600', 'border-rose-400');
+            btn.classList.add('bg-slate-800', 'border-slate-600');
+            document.getElementById('record-status').textContent = "Klik Mikrofon untuk Mulai Merekam";
+        }
+
+        async function polishTranscriptWithAI() {
+            const text = document.getElementById('transcript-editor').value.trim();
+            if (!text) {
+                showToast("Belum ada teks hasil rekaman untuk dirapikan!", "alert-circle");
+                return;
+            }
+            await quickTransform("Rapikan hasil transkripsi suara berikut ini: tambahkan tanda titik, koma, huruf kapital yang tepat, dan bagi menjadi paragraf yang rapi tanpa mengubah maksud ucapannya.");
+        }
+
+        // --- FITUR 4: OLAH TEKS & RINGKASAN AI ---
+        async function generateAISummary(mode) {
+            const transcript = document.getElementById('transcript-editor').value.trim();
+            if (!transcript) {
+                showToast("Transkrip masih kosong! Proses video atau suara terlebih dahulu.", "alert-circle");
+                return;
+            }
+
+            switchOutputView('summary');
+            const summaryBox = document.getElementById('summary-content');
+            summaryBox.textContent = "⏳ Sedang menyusun hasil dengan Gemini AI...";
+
+            let instruction = "";
+            if (mode === 'poin') {
+                instruction = "Buatkan ringkasan eksekutif beserta daftar Poin-Poin Penting (Bullet Points) dan Kesimpulan Utama dari transkrip pembicaraan video berikut dalam Bahasa Indonesia.";
+            } else if (mode === 'artikel') {
+                instruction = "Ubah transkrip pembicaraan video berikut menjadi sebuah Artikel / Tulisan Blog yang terstruktur rapi lengkap dengan Judul Menarik, Subjudul, dan Paragraf yang mengalir enak dibaca.";
+            } else if (mode === 'caption') {
+                instruction = "Buatkan 3 opsi Caption Media Sosial (untuk TikTok, Instagram Reels, dan Thread X) yang menarik beserta hashtag populer berdasarkan isi pembicaraan video berikut.";
+            }
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: `${instruction}\n\nTranskrip Video:\n${transcript}` }]
+                    }]
+                };
+                const result = await callGeminiAPI(payload);
+                const output = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                summaryBox.textContent = output ? output.trim() : "Gagal membuat ringkasan.";
+                showToast("Berhasil diolah oleh AI!", "sparkles");
+            } catch (e) {
+                summaryBox.textContent = "Terjadi kesalahan saat menghubungi AI. Silakan coba lagi.";
+            }
+        }
+
+        async function quickTransform(instruction) {
+            const editor = document.getElementById('transcript-editor');
+            const currentText = editor.value.trim();
+            if (!currentText) {
+                showToast("Teks transkrip masih kosong!", "alert-circle");
+                return;
+            }
+
+            setLoading(true, "Memproses Teks dengan AI...", "Sedang merapikan ketikan sesuai instruksi Anda.");
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            text: `${instruction}.\nBerikan langsung hasil teksnya saja tanpa kalimat pembuka.\n\nTeks Asli:\n${currentText}`
+                        }]
+                    }]
+                };
+                const result = await callGeminiAPI(payload);
+                const output = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (output) {
+                    editor.value = output.trim();
+                    updateStats();
+                    switchOutputView('text');
+                    showToast("Ketikan berhasil diperbarui!", "check-circle");
+                }
+            } catch (e) {
+                showToast("Gagal memproses teks.", "alert-triangle");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // --- CONTOH DEMO OTOMATIS ---
+        function loadDemoSample() {
+            switchTab('link');
+            const demoUrl = "https://www.tiktok.com/@edukasi.id/video/7392819201928";
+            const demoContext = "Video penjelasan singkat tentang tips produktif belajar teknik Pomodoro 25 menit fokus dan 5 menit istirahat.";
+            document.getElementById('video-url').value = demoUrl;
+            document.getElementById('video-context').value = demoContext;
+            detectPlatform(demoUrl);
+
+            const sampleTranscript = `[00:00] Halo teman-teman semua! Pernah nggak sih kalian merasa udah duduk berjam-jam di depan laptop atau buku, tapi rasanya nggak ada materi yang masuk ke otak?
+
+[00:12] Nah, di video kali ini aku mau bahas satu teknik sederhana tapi ampuh banget yang namanya Teknik Pomodoro. Teknik ini ditemukan oleh Francesco Cirillo di akhir tahun 1980-an.
+
+[00:25] Cara pakainya gampang banget:
+Pertama, pilih satu tugas yang mau kalian selesaikan.
+Kedua, pasang timer selama 25 menit. Selama 25 menit ini, matikan notifikasi HP dan fokus penuh tanpa terdistraksi.
+
+[00:42] Ketiga, begitu timer berbunyi, berhentilah bekerja dan ambil istirahat singkat selama 5 menit. Kalian bisa minum air putih, peregangan badan, atau jalan sebentar.
+
+[00:55] Setelah menyelesaikan 4 sesi Pomodoro, barulah kalian ambil istirahat panjang sekitar 15 sampai 30 menit. Dengan cara ini, otak kita nggak gampang burnout dan fokus tetap terjaga. Selamat mencoba ya!`;
+
+            document.getElementById('transcript-editor').value = sampleTranscript;
+            document.getElementById('doc-title').textContent = "Contoh Demo: Video Edukasi Teknik Pomodoro";
+            updateStats();
+            saveToHistory("Demo: Tips Belajar Teknik Pomodoro", sampleTranscript, "Contoh Demo");
+            showToast("Contoh transkrip video berhasil dimuat! Anda juga bisa klik 'Ubah Link Video Menjadi Ketikan'.", "sparkles");
+        }
+
+        // --- UTILITAS EDITOR & RIWAYAT ---
+        function updateStats() {
+            const text = document.getElementById('transcript-editor').value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const chars = text.length;
+            document.getElementById('word-count').textContent = `${words} kata`;
+            document.getElementById('char-count').textContent = `${chars} karakter`;
+        }
+
+        function copyTranscript() {
+            const viewSummaryVisible = !document.getElementById('view-summary').classList.contains('hidden');
+            const textToCopy = viewSummaryVisible 
+                ? document.getElementById('summary-content').textContent 
+                : document.getElementById('transcript-editor').value;
+
+            if (!textToCopy.trim()) {
+                showToast("Tidak ada teks untuk disalin!", "alert-circle");
+                return;
+            }
+
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = textToCopy;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+
+            showToast("Teks ketikan berhasil disalin ke Clipboard!", "check-circle");
+        }
+
+        function downloadTxt() {
+            const text = document.getElementById('transcript-editor').value.trim();
+            if (!text) {
+                showToast("Tidak ada teks untuk diunduh!", "alert-circle");
+                return;
+            }
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transkrip-video-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("File .TXT berhasil diunduh!", "download");
+        }
+
+        function clearEditor() {
+            document.getElementById('transcript-editor').value = "";
+            document.getElementById('sources-box').classList.add('hidden');
+            updateStats();
+            showToast("Editor teks dibersihkan.", "trash-2");
+        }
+
+        function saveToHistory(title, text, badge) {
+            const item = {
+                id: Date.now(),
+                title: title || "Transkrip Tanpa Judul",
+                text: text,
+                badge: badge,
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+            transcriptHistory.unshift(item);
+            if (transcriptHistory.length > 10) transcriptHistory.pop();
+            try {
+                localStorage.setItem('vidioketeks_history', JSON.stringify(transcriptHistory));
+            } catch (e) {}
+            renderHistory();
+        }
+
+        function loadHistoryFromStorage() {
+            try {
+                const saved = localStorage.getItem('vidioketeks_history');
+                if (saved) {
+                    transcriptHistory = JSON.parse(saved);
+                }
+            } catch (e) {}
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = "";
+
+            if (transcriptHistory.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Belum ada riwayat transkripsi.</p>`;
+                return;
+            }
+
+            transcriptHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 cursor-pointer transition flex items-center justify-between gap-2";
+                div.onclick = () => {
+                    document.getElementById('transcript-editor').value = item.text;
+                    document.getElementById('doc-title').textContent = item.title;
+                    updateStats();
+                    switchOutputView('text');
+                    showToast("Riwayat transkrip dimuat.", "history");
+                };
+                div.innerHTML = `
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-slate-200 truncate">${item.title}</p>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">${item.badge} • ${item.time}</p>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 shrink-0"></i>
+                `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function clearHistory() {
+            transcriptHistory = [];
+            try { localStorage.removeItem('vidioketeks_history'); } catch (e) {}
+            renderHistory();
+            showToast("Riwayat transkripsi dihapus.", "trash-2");
+        }
+
+        function setLoading(isLoading, title = "", subtitle = "") {
+            const overlay = document.getElementById('loading-overlay');
+            const viewText = document.getElementById('view-text');
+            if (isLoading) {
+                document.getElementById('loading-title').textContent = title;
+                document.getElementById('loading-subtitle').textContent = subtitle;
+                overlay.classList.remove('hidden');
+                viewText.classList.add('hidden');
+            } else {
+                overlay.classList.add('hidden');
+                viewText.classList.remove('hidden');
+            }
+        }
+
+        function toggleGuideModal() {
+            const modal = document.getElementById('guide-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        let toastTimeout;
+        function showToast(message, iconName = "check-circle") {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3200);
+        }
+    </script>
+</body>
+</html>
