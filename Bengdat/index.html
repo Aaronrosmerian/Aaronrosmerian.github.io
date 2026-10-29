@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartWorkshop - Sistem Monitoring Alat Bengkel & Lab Sekolah</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600; }
+        .modal-bg { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); }
+</style>
+  </head>
+  <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+	  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+		<div class="flex items-center space-x-3">
+		  <div class="bg-blue-600 p-2.5 rounded-lg">
+			<i class="fa-solid fa-screwdriver-wrench text-xl"></i>
+		  </div>
+		  <div>
+			<h1 class="text-lg font-bold tracking-tight leading-none">SmartWorkshop & Lab</h1>
+			<p class="text-xs text-slate-400 mt-1">Sistem Monitoring Peminjaman Alat Praktik Sekolah</p>
+		  </div>
+		</div>
+
+		<div class="flex items-center gap-2">
+		  <button onclick="openModal('modalPinjam')" class="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+			<i class="fa-solid fa-hand-holding-hand"></i> Pinjam Alat
+		  </button>
+		  <button onclick="openModal('modalTambahAlat')" class="bg-slate-700 hover:bg-slate-600 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+			<i class="fa-solid fa-plus"></i> Alat Baru
+		  </button>
+		  <div class="relative group">
+			<button class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg text-sm transition" title="Pengaturan Data">
+			  <i class="fa-solid fa-gear"></i>
+			</button>
+			<div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl border border-slate-200 py-1 text-slate-700 text-xs z-50">
+			  <button onclick="exportBackupJSON()" class="w-full text-left px-4 py-2 hover:bg-slate-100 flex items-center gap-2">
+				<i class="fa-solid fa-download text-blue-600"></i> Backup Data (JSON)
+			  </button>
+			  <label class="w-full text-left px-4 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer">
+				<i class="fa-solid fa-upload text-emerald-600"></i> Restore Data (JSON)
+				<input type="file" id="importJsonFile" accept=".json" class="hidden" onchange="importBackupJSON(event)">
+			  </label>
+			  <hr class="my-1 border-slate-200">
+			  <button onclick="resetDefaultData()" class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">
+				<i class="fa-solid fa-rotate-left"></i> Reset Data Contoh
+			  </button>
+			</div>
+		  </div>
+		</div>
+	  </div>
+
+	  <!-- Navigation Tabs -->
+	  <div class="bg-white border-b border-slate-200 text-slate-600">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 overflow-x-auto text-sm">
+		  <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-1 tab-active whitespace-nowrap flex items-center gap-2">
+			<i class="fa-solid fa-chart-pie"></i> Dashboard & Peminjaman Aktif
+		  </button>
+		  <button onclick="switchTab('inventaris')" id="tab-inventaris" class="py-3 px-1 hover:text-slate-900 whitespace-nowrap flex items-center gap-2">
+			<i class="fa-solid fa-boxes-stacked"></i> Data Inventaris Alat
+		  </button>
+		  <button onclick="switchTab('riwayat')" id="tab-riwayat" class="py-3 px-1 hover:text-slate-900 whitespace-nowrap flex items-center gap-2">
+			<i class="fa-solid fa-clock-rotate-left"></i> Riwayat & Laporan
+		  </button>
+		</div>
+	  </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+	  <!-- Ringkasan Statistik (Selalu Tampil) -->
+	  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+		  <div>
+			<p class="text-xs font-medium text-slate-500 uppercase">Total Unit Alat</p>
+			<p id="statTotalUnit" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+			<p id="statTotalJenis" class="text-xs text-slate-400 mt-0.5">0 Jenis</p>
+		  </div>
+		  <div class="w-11 h-11 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+			<i class="fa-solid fa-toolbox"></i>
+		  </div>
+		</div>
+
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+		  <div>
+			<p class="text-xs font-medium text-slate-500 uppercase">Sedang Dipinjam</p>
+			<p id="statDipinjam" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+			<p id="statTransaksiAktif" class="text-xs text-slate-400 mt-0.5">0 Siswa meminjam</p>
+		  </div>
+		  <div class="w-11 h-11 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+			<i class="fa-solid fa-user-clock"></i>
+		  </div>
+		</div>
+
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+		  <div>
+			<p class="text-xs font-medium text-slate-500 uppercase">Melewati Batas Waktu</p>
+			<p id="statTerlambat" class="text-2xl font-bold text-red-600 mt-1">0</p>
+			<p class="text-xs text-slate-400 mt-0.5">Perlu ditindaklanjuti</p>
+		  </div>
+		  <div class="w-11 h-11 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-lg">
+			<i class="fa-solid fa-triangle-exclamation"></i>
+		  </div>
+		</div>
+
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+		  <div>
+			<p class="text-xs font-medium text-slate-500 uppercase">Rusak / Maintenance</p>
+			<p id="statRusak" class="text-2xl font-bold text-slate-700 mt-1">0</p>
+			<p class="text-xs text-slate-400 mt-0.5">Tidak dapat dipinjam</p>
+		  </div>
+		  <div class="w-11 h-11 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-lg">
+			<i class="fa-solid fa-hammer"></i>
+		  </div>
+		</div>
+	  </div>
+
+	  <!-- TAB 1: DASHBOARD & PEMINJAMAN AKTIF -->
+	  <section id="view-dashboard" class="space-y-6">
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+		  <!-- Daftar Peminjaman Aktif (2 Kolom) -->
+		  <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
+			<div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+			  <div>
+				<h2 class="font-bold text-slate-800 flex items-center gap-2">
+				  <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+				  Daftar Alat yang Sedang Dipinjam Siswa
+				</h2>
+			  </div>
+			  <div class="flex items-center gap-2 w-full sm:w-auto">
+				<input type="text" id="searchPinjamAktif" oninput="renderActiveLoans()" placeholder="Cari nama siswa / kelas / alat..." class="w-full sm:w-60 text-xs px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			  </div>
+			</div>
+
+			<div class="overflow-x-auto flex-grow">
+			  <table class="w-full text-left border-collapse text-sm">
+				<thead>
+				  <tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+					<th class="py-3 px-4">Siswa & Kelas</th>
+					<th class="py-3 px-4">Alat & Jumlah</th>
+					<th class="py-3 px-4">Waktu & Tenggat</th>
+					<th class="py-3 px-4 text-right">Aksi</th>
+				  </tr>
+				</thead>
+				<tbody id="tablePinjamAktif" class="divide-y divide-slate-200">
+				  <!-- Diisi via JS -->
+				</tbody>
+			  </table>
+			</div>
+		  </div>
+
+		  <!-- Grafik Analitik (1 Kolom) -->
+		  <div class="space-y-6">
+			<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+			  <h3 class="text-sm font-bold text-slate-800 mb-3">Status Ketersediaan Unit</h3>
+			  <div class="h-48 flex justify-center">
+				<canvas id="chartStatus"></canvas>
+			  </div>
+			</div>
+			<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+			  <h3 class="text-sm font-bold text-slate-800 mb-3">Distribusi Kategori Alat</h3>
+			  <div class="h-48 flex justify-center">
+				<canvas id="chartKategori"></canvas>
+			  </div>
+			</div>
+		  </div>
+
+		</div>
+	  </section>
+
+	  <!-- TAB 2: INVENTARIS ALAT -->
+	  <section id="view-inventaris" class="hidden space-y-4">
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-3">
+		  <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+			<div class="relative flex-grow sm:w-64">
+			  <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+			  <input type="text" id="searchInventaris" oninput="renderInventory()" placeholder="Cari kode, nama alat, lokasi rak..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			</div>
+			<select id="filterKategori" onchange="renderInventory()" class="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-500">
+			  <option value="ALL">Semua Kategori</option>
+			  <option value="Perkakas Tangan">Perkakas Tangan</option>
+			  <option value="Alat Ukur & Uji">Alat Ukur & Uji</option>
+			  <option value="Power Tools / Mesin">Power Tools / Mesin</option>
+			  <option value="Elektronik & IoT">Elektronik & IoT</option>
+			  <option value="Keselamatan (K3)">Keselamatan (K3)</option>
+			</select>
+		  </div>
+		  <button onclick="openModal('modalTambahAlat')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+			<i class="fa-solid fa-plus"></i> Tambah Alat Baru
+		  </button>
+		</div>
+
+		<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+		  <div class="overflow-x-auto">
+			<table class="w-full text-left border-collapse text-sm">
+			  <thead>
+				<tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+				  <th class="py-3.5 px-4">Kode & Nama Alat</th>
+				  <th class="py-3.5 px-4">Kategori & Lokasi</th>
+				  <th class="py-3.5 px-4">Ketersediaan Stok</th>
+				  <th class="py-3.5 px-4 text-center">Rusak</th>
+				  <th class="py-3.5 px-4 text-right">Kelola</th>
+				</tr>
+			  </thead>
+			  <tbody id="tableInventaris" class="divide-y divide-slate-200">
+				<!-- Diisi via JS -->
+			  </tbody>
+			</table>
+		  </div>
+		</div>
+	  </section>
+
+	  <!-- TAB 3: RIWAYAT & LAPORAN -->
+	  <section id="view-riwayat" class="hidden space-y-4">
+		<div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-3">
+		  <div class="flex flex-wrap items-center gap-2">
+			<input type="text" id="searchRiwayat" oninput="renderHistory()" placeholder="Cari siswa, alat, atau guru..." class="text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 w-64">
+			<select id="filterStatusRiwayat" onchange="renderHistory()" class="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white">
+			  <option value="ALL">Semua Status</option>
+			  <option value="DIPINJAM">Masih Dipinjam</option>
+			  <option value="DIKEMBALIKAN">Sudah Dikembalikan</option>
+			</select>
+		  </div>
+		  <div class="flex items-center gap-2">
+			<button onclick="exportHistoryCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+			  <i class="fa-solid fa-file-csv"></i> Export Laporan CSV
+			</button>
+		  </div>
+		</div>
+
+		<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+		  <div class="overflow-x-auto">
+			<table class="w-full text-left border-collapse text-sm">
+			  <thead>
+				<tr class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+				  <th class="py-3.5 px-4">Waktu Pinjam</th>
+				  <th class="py-3.5 px-4">Peminjam (Siswa)</th>
+				  <th class="py-3.5 px-4">Alat & Jumlah</th>
+				  <th class="py-3.5 px-4">Guru / Penanggung Jawab</th>
+				  <th class="py-3.5 px-4">Status & Kondisi Kembali</th>
+				</tr>
+			  </thead>
+			  <tbody id="tableRiwayat" class="divide-y divide-slate-200">
+				<!-- Diisi via JS -->
+			  </tbody>
+			</table>
+		  </div>
+		</div>
+	  </section>
+
+    </main>
+
+    <!-- MODAL 1: FORM PINJAM ALAT -->
+    <div id="modalPinjam" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 p-4">
+	  <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+		<div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+		  <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-hand-holding-hand text-blue-400"></i> Form Peminjaman Alat Praktik</h3>
+		  <button onclick="closeModal('modalPinjam')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+		</div>
+		<form id="formPinjam" onsubmit="submitLoan(event)" class="p-5 space-y-4 text-sm">
+		  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Nama Siswa / Ketua Kelompok *</label>
+			  <input type="text" id="pinjamNama" required placeholder="Contoh: Budi Santoso" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			</div>
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Kelas / Jurusan *</label>
+			  <input type="text" id="pinjamKelas" required placeholder="Contoh: XI TKR 1 / XII TKJ 2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			</div>
+		  </div>
+
+		  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+			<div class="sm:col-span-2">
+			  <label class="block font-medium text-slate-700 mb-1">Pilih Alat Bengkel/Lab *</label>
+			  <select id="pinjamAlatId" required onchange="updateMaxQty()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+				<!-- Diisi via JS -->
+			  </select>
+			</div>
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Jumlah Pinjam *</label>
+			  <input type="number" id="pinjamQty" required min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			  <span id="infoStokTersedia" class="text-xs text-slate-500">Maks: -</span>
+			</div>
+		  </div>
+
+		  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Guru Pengampu / Instruktur *</label>
+			  <input type="text" id="pinjamGuru" required placeholder="Contoh: Pak Hendra, S.T." class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			</div>
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Batas Waktu Kembali *</label>
+			  <input type="datetime-local" id="pinjamTenggat" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+			</div>
+		  </div>
+
+		  <div>
+			<label class="block font-medium text-slate-700 mb-1">Keperluan / Mata Pelajaran Praktik</label>
+			<input type="text" id="pinjamCatatan" placeholder="Contoh: Praktik Overhaul Mesin / Perakitan Mikrokontroler" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500">
+		  </div>
+
+		  <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+			<button type="button" onclick="closeModal('modalPinjam')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100">Batal</button>
+			<button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium">Simpan Peminjaman</button>
+		  </div>
+		</form>
+	  </div>
+    </div>
+
+    <!-- MODAL 2: FORM PENGEMBALIAN & CEK KONDISI ALAT -->
+    <div id="modalKembali" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 p-4">
+	  <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+		<div class="px-5 py-4 bg-emerald-700 text-white flex justify-between items-center">
+		  <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-clipboard-check"></i> Verifikasi Pengembalian Alat</h3>
+		  <button onclick="closeModal('modalKembali')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+		</div>
+		<form id="formKembali" onsubmit="submitReturn(event)" class="p-5 space-y-4 text-sm">
+		  <input type="hidden" id="kembaliLoanId">
+
+		  <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
+			<p class="text-xs text-slate-500">Detail Peminjaman:</p>
+			<p id="kembaliInfoSiswa" class="font-bold text-slate-800"></p>
+			<p id="kembaliInfoAlat" class="text-blue-600 font-medium"></p>
+		  </div>
+
+		  <div>
+			<label class="block font-medium text-slate-700 mb-1">Kondisi Alat Saat Dikembalikan *</label>
+			<select id="kembaliKondisi" required onchange="toggleRusakInput()" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-emerald-600">
+			  <option value="Baik & Lengkap">✅ Baik & Lengkap (Masuk Stok Normal)</option>
+			  <option value="Rusak / Perlu Perbaikan">⚠️ Ada Unit yang Rusak / Hilang</option>
+			</select>
+		  </div>
+
+		  <div id="boxJumlahRusak" class="hidden bg-red-50 p-3 rounded-lg border border-red-200 space-y-2">
+			<label class="block font-medium text-red-700 text-xs">Jumlah Unit yang Rusak / Bermasalah *</label>
+			<input type="number" id="kembaliQtyRusak" min="1" value="1" class="w-full px-3 py-1.5 border border-red-300 rounded-lg bg-white">
+			<p class="text-[11px] text-red-600">*Unit yang rusak akan otomatis dipindahkan ke status Maintenance dan mengurangi stok siap pakai.</p>
+		  </div>
+
+		  <div>
+			<label class="block font-medium text-slate-700 mb-1">Catatan Pengembalian (Opsional)</label>
+			<input type="text" id="kembaliCatatan" placeholder="Contoh: Kabel sedikit terkelupas / Lengkap" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
+		  </div>
+
+		  <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+			<button type="button" onclick="closeModal('modalKembali')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100">Batal</button>
+			<button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Konfirmasi Kembali</button>
+		  </div>
+		</form>
+	  </div>
+    </div>
+
+    <!-- MODAL 3: TAMBAH / EDIT INVENTARIS ALAT -->
+    <div id="modalTambahAlat" class="fixed inset-0 modal-bg hidden items-center justify-center z-50 p-4">
+	  <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+		<div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+		  <h3 id="judulModalAlat" class="font-bold flex items-center gap-2"><i class="fa-solid fa-box-open text-blue-400"></i> Tambah Alat Bengkel / Lab</h3>
+		  <button onclick="closeModal('modalTambahAlat')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+		</div>
+		<form id="formAlat" onsubmit="submitTool(event)" class="p-5 space-y-4 text-sm">
+		  <input type="hidden" id="alatIdEdit">
+		  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Kode Alat *</label>
+			  <input type="text" id="alatKode" required placeholder="Contoh: UKR-01" class="w-full px-3 py-2 border border-slate-300 rounded-lg uppercase">
+			</div>
+			<div class="sm:col-span-2">
+			  <label class="block font-medium text-slate-700 mb-1">Nama Alat Spesifik *</label>
+			  <input type="text" id="alatNama" required placeholder="Contoh: Multimeter Digital Sanwa" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+			</div>
+		  </div>
+
+		  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Kategori *</label>
+			  <select id="alatKategori" required class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+				<option value="Perkakas Tangan">Perkakas Tangan</option>
+				<option value="Alat Ukur & Uji">Alat Ukur & Uji</option>
+				<option value="Power Tools / Mesin">Power Tools / Mesin</option>
+				<option value="Elektronik & IoT">Elektronik & IoT</option>
+				<option value="Keselamatan (K3)">Keselamatan (K3)</option>
+			  </select>
+			</div>
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Lokasi Penyimpanan / Rak *</label>
+			  <input type="text" id="alatLokasi" required placeholder="Contoh: Lemari B - Rak 2" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+			</div>
+		  </div>
+
+		  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Total Seluruh Unit *</label>
+			  <input type="number" id="alatTotal" required min="1" value="5" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+			</div>
+			<div>
+			  <label class="block font-medium text-slate-700 mb-1">Jumlah Unit Rusak (Saat Ini)</label>
+			  <input type="number" id="alatRusak" required min="0" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+			</div>
+		  </div>
+
+		  <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+			<button type="button" onclick="closeModal('modalTambahAlat')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100">Batal</button>
+			<button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium">Simpan Data Alat</button>
+		  </div>
+		</form>
+	  </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+<script>
+        const STORAGE_KEY_TOOLS = 'smartworkshop_tools_v1';
+        const STORAGE_KEY_LOANS = 'smartworkshop_loans_v1';
+
+        let tools = [];
+        let loans = [];
+        let chartStatusInstance = null;
+        let chartKategoriInstance = null;
+
+        // Data Awal (Default) jika kosong
+        const defaultTools = [
+            { id: 'T1', code: 'UKR-01', name: 'Multimeter Digital (AVO)', category: 'Alat Ukur & Uji', location: 'Lemari A - Rak 1', total: 15, broken: 1 },
+            { id: 'T2', code: 'UKR-02', name: 'Jangka Sorong (Vernier Caliper) 150mm', category: 'Alat Ukur & Uji', location: 'Lemari A - Rak 2', total: 20, broken: 0 },
+            { id: 'T3', code: 'PRK-01', name: 'Kunci Sok Set (Socket Wrench 24 Pcs)', category: 'Perkakas Tangan', location: 'Panel Dinding 1', total: 8, broken: 0 },
+            { id: 'T4', code: 'PWR-01', name: 'Bor Tangan Listrik (Hand Drill) Makita', category: 'Power Tools / Mesin', location: 'Kabinet Besi B1', total: 6, broken: 1 },
+            { id: 'T5', code: 'ELK-01', name: 'Solder Station & Timah Set', category: 'Elektronik & IoT', location: 'Meja Lab Elektro', total: 12, broken: 0 },
+            { id: 'T6', code: 'ELK-02', name: 'Kit Praktik Arduino & Sensor IoT', category: 'Elektronik & IoT', location: 'Laci Komponen C3', total: 10, broken: 0 },
+            { id: 'T7', code: 'UKR-03', name: 'Mikrometer Sekrup 0-25mm', category: 'Alat Ukur & Uji', location: 'Lemari A - Rak 2', total: 10, broken: 0 },
+            { id: 'T8', code: 'K3-01', name: 'Kacamata Safety & Sarung Tangan Las', category: 'Keselamatan (K3)', location: 'Rak K3 Pintu Masuk', total: 25, broken: 2 }
+        ];
+
+        const now = new Date();
+        const past2Hours = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString().slice(0, 16);
+        const next3Hours = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 16);
+        const yesterday = new Date(now.getTime() - 26 * 60 * 60 * 1000).toISOString().slice(0, 16);
+
+        const defaultLoans = [
+            {
+                id: 'L1',
+                studentName: 'Dimas Pratama',
+                studentClass: 'XI TKR 2',
+                toolId: 'T3',
+                qty: 2,
+                teacher: 'Pak Hendra, S.T.',
+                borrowTime: past2Hours,
+                dueTime: next3Hours,
+                returnTime: null,
+                status: 'DIPINJAM',
+                returnCondition: '-',
+                notes: 'Praktik Bongkar Pasang Silinder Head'
+            },
+            {
+                id: 'L2',
+                studentName: 'Rizky Ramadhan',
+                studentClass: 'XII TEI 1',
+                toolId: 'T1',
+                qty: 4,
+                teacher: 'Bu Ratna, S.Pd.',
+                borrowTime: yesterday,
+                dueTime: past2Hours, // Sudah lewat tenggat (Overdue)
+                returnTime: null,
+                status: 'DIPINJAM',
+                returnCondition: '-',
+                notes: 'Pengukuran Rangkaian Power Supply'
+            },
+            {
+                id: 'L3',
+                studentName: 'Siti Nurhaliza',
+                studentClass: 'XI TKJ 1',
+                toolId: 'T6',
+                qty: 3,
+                teacher: 'Pak Arif, M.Kom.',
+                borrowTime: yesterday,
+                dueTime: past2Hours,
+                returnTime: past2Hours,
+                status: 'DIKEMBALIKAN',
+                returnCondition: 'Baik & Lengkap',
+                notes: 'Praktik Otomasi Sensor Kelembaban'
+            }
+        ];
+
+        // Inisialisasi Data
+        function initApp() {
+            const savedTools = localStorage.getItem(STORAGE_KEY_TOOLS);
+            const savedLoans = localStorage.getItem(STORAGE_KEY_LOANS);
+
+            tools = savedTools ? JSON.parse(savedTools) : [...defaultTools];
+            loans = savedLoans ? JSON.parse(savedLoans) : [...defaultLoans];
+
+            saveData();
+            refreshAllViews();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY_TOOLS, JSON.stringify(tools));
+            localStorage.setItem(STORAGE_KEY_LOANS, JSON.stringify(loans));
+        }
+
+        // Hitung jumlah unit alat yang sedang dipinjam
+        function getBorrowedCount(toolId) {
+            return loans
+                .filter(l => l.toolId === toolId && l.status === 'DIPINJAM')
+                .reduce((sum, l) => sum + parseInt(l.qty), 0);
+        }
+
+        // Hitung stok siap pakai (Tersedia = Total - Dipinjam - Rusak)
+        function getAvailableStock(tool) {
+            const borrowed = getBorrowedCount(tool.id);
+            return Math.max(0, tool.total - borrowed - tool.broken);
+        }
+
+        function refreshAllViews() {
+            updateStats();
+            renderActiveLoans();
+            renderInventory();
+            renderHistory();
+            updateCharts();
+        }
+
+        // Update Kartu Statistik Atas
+        function updateStats() {
+            const totalUnit = tools.reduce((sum, t) => sum + parseInt(t.total), 0);
+            const totalBroken = tools.reduce((sum, t) => sum + parseInt(t.broken), 0);
+            const activeLoans = loans.filter(l => l.status === 'DIPINJAM');
+            const totalBorrowed = activeLoans.reduce((sum, l) => sum + parseInt(l.qty), 0);
+
+            const currentTime = new Date();
+            const overdueCount = activeLoans.filter(l => new Date(l.dueTime) < currentTime).length;
+
+            document.getElementById('statTotalUnit').textContent = totalUnit;
+            document.getElementById('statTotalJenis').textContent = `${tools.length} Jenis Alat`;
+            document.getElementById('statDipinjam').textContent = totalBorrowed;
+            document.getElementById('statTransaksiAktif').textContent = `${activeLoans.length} Transaksi Aktif`;
+            document.getElementById('statTerlambat').textContent = overdueCount;
+            document.getElementById('statRusak').textContent = totalBroken;
+        }
+
+        // Render Tabel Peminjaman Aktif (Dashboard)
+        function renderActiveLoans() {
+            const tbody = document.getElementById('tablePinjamAktif');
+            const keyword = document.getElementById('searchPinjamAktif').value.toLowerCase();
+            const activeLoans = loans.filter(l => l.status === 'DIPINJAM');
+
+            const filtered = activeLoans.filter(l => {
+                const tool = tools.find(t => t.id === l.toolId);
+                const toolName = tool ? tool.name.toLowerCase() : '';
+                return l.studentName.toLowerCase().includes(keyword) ||
+                       l.studentClass.toLowerCase().includes(keyword) ||
+                       toolName.includes(keyword);
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400">Tidak ada peminjaman aktif yang sesuai pencarian.</td></tr>`;
+                return;
+            }
+
+            const nowTime = new Date();
+            tbody.innerHTML = filtered.map(l => {
+                const tool = tools.find(t => t.id === l.toolId) || { name: 'Alat Terhapus', code: '-' };
+                const isOverdue = new Date(l.dueTime) < nowTime;
+                const badgeOverdue = isOverdue 
+                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-700"><i class="fa-solid fa-circle-exclamation"></i> Terlambat</span>`
+                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700">Aktif</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition ${isOverdue ? 'bg-red-50/40' : ''}">
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-slate-800">${escapeHtml(l.studentName)}</div>
+                            <div class="text-xs text-slate-500">${escapeHtml(l.studentClass)} • PJ: ${escapeHtml(l.teacher)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-blue-700">${escapeHtml(tool.name)}</div>
+                            <div class="text-xs text-slate-500">Kode: ${escapeHtml(tool.code)} • Jumlah: <strong class="text-slate-800">${l.qty} Unit</strong></div>
+                            ${l.notes ? `<div class="text-[11px] text-slate-400 italic mt-0.5">"${escapeHtml(l.notes)}"</div>` : ''}
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="text-xs text-slate-600">Pinjam: ${formatDateTime(l.borrowTime)}</div>
+                            <div class="text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-700'}">Batas: ${formatDateTime(l.dueTime)}</div>
+                            <div class="mt-1">${badgeOverdue}</div>
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="openReturnModal('${l.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition shadow-sm inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-check"></i> Kembalikan
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render Tabel Inventaris Alat
+        function renderInventory() {
+            const tbody = document.getElementById('tableInventaris');
+            const keyword = document.getElementById('searchInventaris').value.toLowerCase();
+            const catFilter = document.getElementById('filterKategori').value;
+
+            const filtered = tools.filter(t => {
+                const matchKat = catFilter === 'ALL' || t.category === catFilter;
+                const matchKey = t.name.toLowerCase().includes(keyword) ||
+                                 t.code.toLowerCase().includes(keyword) ||
+                                 t.location.toLowerCase().includes(keyword);
+                return matchKat && matchKey;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Data alat tidak ditemukan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(t => {
+                const borrowed = getBorrowedCount(t.id);
+                const available = getAvailableStock(t);
+                const pct = t.total > 0 ? Math.round((available / t.total) * 100) : 0;
+                const barColor = available === 0 ? 'bg-red-500' : (pct < 40 ? 'bg-amber-500' : 'bg-emerald-500');
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 rounded border border-slate-300">${escapeHtml(t.code)}</span>
+                            <div class="font-bold text-slate-800 mt-1">${escapeHtml(t.name)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="text-xs font-medium text-blue-600">${escapeHtml(t.category)}</div>
+                            <div class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>${escapeHtml(t.location)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>Tersedia: <strong class="text-slate-900">${available}</strong> / ${t.total}</span>
+                                <span class="text-amber-600 font-medium">${borrowed > 0 ? `${borrowed} Dipinjam` : ''}</span>
+                            </div>
+                            <div class="w-44 bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full" style="width: ${pct}%"></div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            ${t.broken > 0 
+                                ? `<span class="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">${t.broken} Unit</span>` 
+                                : `<span class="text-xs text-slate-400">0</span>`}
+                        </td>
+                        <td class="py-3 px-4 text-right space-x-1">
+                            <button onclick="editTool('${t.id}')" class="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit Alat">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteTool('${t.id}')" class="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded" title="Hapus Alat">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render Tabel Riwayat Peminjaman
+        function renderHistory() {
+            const tbody = document.getElementById('tableRiwayat');
+            const keyword = document.getElementById('searchRiwayat').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatusRiwayat').value;
+
+            const filtered = [...loans].reverse().filter(l => {
+                const tool = tools.find(t => t.id === l.toolId);
+                const toolName = tool ? tool.name.toLowerCase() : '';
+                const matchStatus = statusFilter === 'ALL' || l.status === statusFilter;
+                const matchKey = l.studentName.toLowerCase().includes(keyword) ||
+                                 l.studentClass.toLowerCase().includes(keyword) ||
+                                 l.teacher.toLowerCase().includes(keyword) ||
+                                 toolName.includes(keyword);
+                return matchStatus && matchKey;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Belum ada riwayat transaksi.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(l => {
+                const tool = tools.find(t => t.id === l.toolId) || { name: 'Alat Dihapus', code: '-' };
+                const statusBadge = l.status === 'DIKEMBALIKAN'
+                    ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Dikembalikan</span>`
+                    : `<span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">Masih Dipinjam</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-3 px-4 text-xs text-slate-600">
+                            <div>Pinjam: ${formatDateTime(l.borrowTime)}</div>
+                            <div class="text-slate-400">Kembali: ${l.returnTime ? formatDateTime(l.returnTime) : '-'}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-slate-800">${escapeHtml(l.studentName)}</div>
+                            <div class="text-xs text-slate-500">${escapeHtml(l.studentClass)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-slate-800">${escapeHtml(tool.name)}</div>
+                            <div class="text-xs text-slate-500">${l.qty} Unit (${escapeHtml(tool.code)})</div>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-700">
+                            <div>${escapeHtml(l.teacher)}</div>
+                            <div class="text-slate-400 italic">${escapeHtml(l.notes || '-')}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div>${statusBadge}</div>
+                            <div class="text-xs text-slate-500 mt-1">Kondisi: ${escapeHtml(l.returnCondition)}</div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Grafik Chart.js
+        function updateCharts() {
+            const totalUnit = tools.reduce((sum, t) => sum + parseInt(t.total), 0);
+            const totalBroken = tools.reduce((sum, t) => sum + parseInt(t.broken), 0);
+            const totalBorrowed = loans.filter(l => l.status === 'DIPINJAM').reduce((sum, l) => sum + parseInt(l.qty), 0);
+            const totalAvailable = Math.max(0, totalUnit - totalBorrowed - totalBroken);
+
+            const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+            if (chartStatusInstance) chartStatusInstance.destroy();
+            chartStatusInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Siap Pakai', 'Dipinjam', 'Rusak'],
+                    datasets: [{
+                        data: [totalAvailable, totalBorrowed, totalBroken],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+                }
+            });
+
+            // Hitung per kategori
+            const catMap = {};
+            tools.forEach(t => {
+                catMap[t.category] = (catMap[t.category] || 0) + parseInt(t.total);
+            });
+
+            const ctxKat = document.getElementById('chartKategori').getContext('2d');
+            if (chartKategoriInstance) chartKategoriInstance.destroy();
+            chartKategoriInstance = new Chart(ctxKat, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(catMap),
+                    datasets: [{
+                        label: 'Jumlah Unit',
+                        data: Object.values(catMap),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Navigasi Tab
+        function switchTab(tabName) {
+            ['dashboard', 'inventaris', 'riwayat'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('tab-active');
+            });
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+        }
+
+        // Modal Handlers
+        function openModal(id) {
+            if (id === 'modalPinjam') {
+                populateToolSelect();
+                // Default tenggat 3 jam dari sekarang
+                const defaultDue = new Date(new Date().getTime() + 3 * 60 * 60 * 1000);
+                defaultDue.setMinutes(defaultDue.getMinutes() - defaultDue.getTimezoneOffset());
+                document.getElementById('pinjamTenggat').value = defaultDue.toISOString().slice(0, 16);
+            }
+            if (id === 'modalTambahAlat' && !document.getElementById('alatIdEdit').value) {
+                document.getElementById('formAlat').reset();
+                document.getElementById('judulModalAlat').innerHTML = `<i class="fa-solid fa-box-open text-blue-400"></i> Tambah Alat Bengkel / Lab`;
+            }
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (id === 'modalTambahAlat') {
+                document.getElementById('alatIdEdit').value = '';
+            }
+        }
+
+        function populateToolSelect() {
+            const select = document.getElementById('pinjamAlatId');
+            const availableTools = tools.filter(t => getAvailableStock(t) > 0);
+            if (availableTools.length === 0) {
+                select.innerHTML = `<option value="">-- Semua alat sedang habis dipinjam --</option>`;
+                return;
+            }
+            select.innerHTML = availableTools.map(t => {
+                const avail = getAvailableStock(t);
+                return `<option value="${t.id}">[${t.code}] ${t.name} (Tersedia: ${avail})</option>`;
+            }).join('');
+            updateMaxQty();
+        }
+
+        function updateMaxQty() {
+            const toolId = document.getElementById('pinjamAlatId').value;
+            const tool = tools.find(t => t.id === toolId);
+            const qtyInput = document.getElementById('pinjamQty');
+            const info = document.getElementById('infoStokTersedia');
+            if (tool) {
+                const max = getAvailableStock(tool);
+                qtyInput.max = max;
+                qtyInput.value = Math.min(qtyInput.value || 1, max);
+                info.textContent = `Maksimal: ${max} unit`;
+            }
+        }
+
+        // Simpan Peminjaman Baru
+        function submitLoan(e) {
+            e.preventDefault();
+            const toolId = document.getElementById('pinjamAlatId').value;
+            const tool = tools.find(t => t.id === toolId);
+            const qty = parseInt(document.getElementById('pinjamQty').value);
+
+            if (!tool || qty > getAvailableStock(tool)) {
+                alert('Stok alat tidak mencukupi!');
+                return;
+            }
+
+            const nowLocal = new Date();
+            nowLocal.setMinutes(nowLocal.getMinutes() - nowLocal.getTimezoneOffset());
+
+            const newLoan = {
+                id: 'L' + Date.now(),
+                studentName: document.getElementById('pinjamNama').value.trim(),
+                studentClass: document.getElementById('pinjamKelas').value.trim(),
+                toolId: toolId,
+                qty: qty,
+                teacher: document.getElementById('pinjamGuru').value.trim(),
+                borrowTime: nowLocal.toISOString().slice(0, 16),
+                dueTime: document.getElementById('pinjamTenggat').value,
+                returnTime: null,
+                status: 'DIPINJAM',
+                returnCondition: '-',
+                notes: document.getElementById('pinjamCatatan').value.trim()
+            };
+
+            loans.push(newLoan);
+            saveData();
+            refreshAllViews();
+            document.getElementById('formPinjam').reset();
+            closeModal('modalPinjam');
+        }
+
+        // Proses Pengembalian Alat
+        function openReturnModal(loanId) {
+            const loan = loans.find(l => l.id === loanId);
+            if (!loan) return;
+            const tool = tools.find(t => t.id === loan.toolId) || { name: 'Alat' };
+
+            document.getElementById('kembaliLoanId').value = loan.id;
+            document.getElementById('kembaliInfoSiswa').textContent = `${loan.studentName} (${loan.studentClass})`;
+            document.getElementById('kembaliInfoAlat').textContent = `${tool.name} — ${loan.qty} Unit`;
+            document.getElementById('kembaliKondisi').value = 'Baik & Lengkap';
+            document.getElementById('kembaliQtyRusak').max = loan.qty;
+            document.getElementById('kembaliQtyRusak').value = 1;
+            document.getElementById('kembaliCatatan').value = '';
+            toggleRusakInput();
+
+            openModal('modalKembali');
+        }
+
+        function toggleRusakInput() {
+            const val = document.getElementById('kembaliKondisi').value;
+            const box = document.getElementById('boxJumlahRusak');
+            if (val === 'Rusak / Perlu Perbaikan') {
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function submitReturn(e) {
+            e.preventDefault();
+            const loanId = document.getElementById('kembaliLoanId').value;
+            const loan = loans.find(l => l.id === loanId);
+            if (!loan) return;
+
+            const kondisi = document.getElementById('kembaliKondisi').value;
+            const catatan = document.getElementById('kembaliCatatan').value.trim();
+            const nowLocal = new Date();
+            nowLocal.setMinutes(nowLocal.getMinutes() - nowLocal.getTimezoneOffset());
+
+            loan.status = 'DIKEMBALIKAN';
+            loan.returnTime = nowLocal.toISOString().slice(0, 16);
+
+            if (kondisi === 'Rusak / Perlu Perbaikan') {
+                const qtyRusak = Math.min(loan.qty, parseInt(document.getElementById('kembaliQtyRusak').value) || 1);
+                loan.returnCondition = `Rusak (${qtyRusak} Unit) ${catatan ? '- ' + catatan : ''}`;
+                const tool = tools.find(t => t.id === loan.toolId);
+                if (tool) {
+                    tool.broken = parseInt(tool.broken) + qtyRusak;
+                }
+            } else {
+                loan.returnCondition = `Baik & Lengkap ${catatan ? '- ' + catatan : ''}`;
+            }
+
+            saveData();
+            refreshAllViews();
+            closeModal('modalKembali');
+        }
+
+        // Tambah / Edit Alat Inventaris
+        function submitTool(e) {
+            e.preventDefault();
+            const editId = document.getElementById('alatIdEdit').value;
+            const toolData = {
+                id: editId || 'T' + Date.now(),
+                code: document.getElementById('alatKode').value.trim().toUpperCase(),
+                name: document.getElementById('alatNama').value.trim(),
+                category: document.getElementById('alatKategori').value,
+                location: document.getElementById('alatLokasi').value.trim(),
+                total: parseInt(document.getElementById('alatTotal').value) || 1,
+                broken: parseInt(document.getElementById('alatRusak').value) || 0
+            };
+
+            if (editId) {
+                const idx = tools.findIndex(t => t.id === editId);
+                if (idx !== -1) tools[idx] = toolData;
+            } else {
+                tools.push(toolData);
+            }
+
+            saveData();
+            refreshAllViews();
+            closeModal('modalTambahAlat');
+        }
+
+        function editTool(id) {
+            const tool = tools.find(t => t.id === id);
+            if (!tool) return;
+            document.getElementById('alatIdEdit').value = tool.id;
+            document.getElementById('alatKode').value = tool.code;
+            document.getElementById('alatNama').value = tool.name;
+            document.getElementById('alatKategori').value = tool.category;
+            document.getElementById('alatLokasi').value = tool.location;
+            document.getElementById('alatTotal').value = tool.total;
+            document.getElementById('alatRusak').value = tool.broken;
+            document.getElementById('judulModalAlat').innerHTML = `<i class="fa-solid fa-pen-to-square text-blue-400"></i> Edit Data Alat`;
+            openModal('modalTambahAlat');
+        }
+
+        function deleteTool(id) {
+            if (getBorrowedCount(id) > 0) {
+                alert('Alat ini sedang dipinjam oleh siswa. Kembalikan terlebih dahulu sebelum menghapus.');
+                return;
+            }
+            if (confirm('Hapus alat ini dari daftar inventaris?')) {
+                tools = tools.filter(t => t.id !== id);
+                saveData();
+                refreshAllViews();
+            }
+        }
+
+        // Export Laporan Riwayat ke CSV
+        function exportHistoryCSV() {
+            const headers = ['ID Transaksi', 'Nama Siswa', 'Kelas', 'Kode Alat', 'Nama Alat', 'Jumlah', 'Guru PJ', 'Waktu Pinjam', 'Tenggat', 'Waktu Kembali', 'Status', 'Kondisi Kembali'];
+            const rows = loans.map(l => {
+                const tool = tools.find(t => t.id === l.toolId) || { code: '-', name: 'Terhapus' };
+                return [
+                    l.id, `"${l.studentName}"`, `"${l.studentClass}"`, tool.code, `"${tool.name}"`,
+                    l.qty, `"${l.teacher}"`, l.borrowTime, l.dueTime, l.returnTime || '-', l.status, `"${l.returnCondition}"`
+                ].join(',');
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+            const link = document.createElement('a');
+            link.setAttribute('href', encodeURI(csvContent));
+            link.setAttribute('download', `Laporan_Peminjaman_Bengkel_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Backup & Restore JSON
+        function exportBackupJSON() {
+            const data = JSON.stringify({ tools, loans }, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Backup_SmartWorkshop_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        }
+
+        function importBackupJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.tools && parsed.loans) {
+                        tools = parsed.tools;
+                        loans = parsed.loans;
+                        saveData();
+                        refreshAllViews();
+                        alert('Data berhasil dipulihkan!');
+                    }
+                } catch (err) {
+                    alert('File JSON tidak valid.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetDefaultData() {
+            if (confirm('Reset seluruh data kembali ke data contoh awal?')) {
+                localStorage.removeItem(STORAGE_KEY_TOOLS);
+                localStorage.removeItem(STORAGE_KEY_LOANS);
+                initApp();
+            }
+        }
+
+        // Helpers
+        function formatDateTime(isoStr) {
+            if (!isoStr) return '-';
+            const d = new Date(isoStr);
+            if (isNaN(d)) return isoStr;
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+</script>
+  </body>
+</html>
+
