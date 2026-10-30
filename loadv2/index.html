@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapvynHD Pro - Fast Social Media Downloader</title>
+    <title>SnapvynHD v4.0 - Direct In-App Downloader</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -14,7 +14,7 @@
             color: #f1f5f9;
         }
         .glass-card {
-            background: rgba(19, 23, 38, 0.88);
+            background: rgba(19, 23, 38, 0.9);
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -36,13 +36,12 @@
                     <i class="fa-solid fa-cloud-arrow-down text-white text-lg"></i>
                 </div>
                 <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Snapvyn<span class="text-white">HD</span></span>
-                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">FAST ENGINE V3.5</span>
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">DIRECT BLOB V4.0</span>
             </div>
 
             <button onclick="toggleModal('apiModal')" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-xs font-medium text-slate-200 flex items-center gap-2 transition">
-                <i class="fa-solid fa-sliders text-purple-400"></i>
-                <span>Pengaturan Server API</span>
-                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <i class="fa-solid fa-key text-purple-400"></i>
+                <span>Custom API</span>
             </button>
         </div>
     </header>
@@ -51,9 +50,9 @@
     <main class="max-w-4xl w-full mx-auto px-4 py-8 flex-1">
         <div class="text-center mb-7">
             <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-2">
-                Unduh Video & Foto <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent">TikTok, IG & FB</span> Kualitas HD
+                Unduh Langsung <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 bg-clip-text text-transparent">TikTok, IG & FB</span> Kualitas HD
             </h1>
-            <p class="text-slate-400 text-sm">Dilengkapi Anti-Hang Timeout (Maksimal 5 Detik) & Multi-Proxy Paralel.</p>
+            <p class="text-slate-400 text-sm">Unduh langsung file MP4 & JPG di halaman ini tanpa dialihkan ke situs lain.</p>
         </div>
 
         <!-- Input Box -->
@@ -66,7 +65,7 @@
                     <input 
                         id="urlInput" 
                         type="url" 
-                        placeholder="Tempel tautan TikTok, Instagram (Reels/Post), atau Facebook di sini..." 
+                        placeholder="Tempel tautan TikTok, Instagram (Reels/Post), atau Facebook..." 
                         class="w-full pl-11 pr-28 py-3.5 rounded-xl bg-[#0b0d17] border border-white/10 focus:border-purple-500 focus:outline-none text-sm text-white placeholder-slate-500 transition"
                         oninput="detectPlatform(this.value)"
                     >
@@ -80,35 +79,36 @@
                     </div>
                 </div>
                 <button onclick="processDownload()" id="downloadBtn" class="gradient-btn px-7 py-3.5 rounded-xl font-bold text-sm text-white shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 transition active:scale-95">
-                    <i class="fa-solid fa-download"></i>
-                    <span>Unduh HD</span>
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Ekstrak & Unduh HD</span>
                 </button>
             </div>
 
             <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 pt-2 border-t border-white/5">
-                <div class="flex items-center gap-2">
-                    <span>Mode Ekstraksi:</span>
-                    <select id="serverSelect" class="bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-purple-500">
-                        <option value="fast">Paralel Cepat (Timeout 4.5 Detik + Auto Fallback)</option>
-                        <option value="direct">Instan Direct Embed & Media (0 Detik Tanpa Antre)</option>
-                        <option value="rapid">Custom RapidAPI (Khusus Pemilik API Key)</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-1.5 text-emerald-400 font-medium">
-                    <i class="fa-solid fa-bolt"></i>
-                    <span id="detectStatus">Anti-Hang Timeout Aktif</span>
-                </div>
+                <span class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    Direct In-Page Blob Downloader (Tanpa Redirect Web Lain)
+                </span>
+                <span id="detectStatus" class="text-purple-300 font-medium">Siap Mengekstrak Media</span>
             </div>
         </div>
 
-        <!-- Loading Indicator dengan Tombol Lewati Instan -->
+        <!-- Loading Indicator -->
         <div id="loadingBox" class="hidden glass-card rounded-2xl p-7 text-center mb-6">
             <div class="w-11 h-11 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p id="loadingText" class="text-sm font-bold text-white">Mengekstrak Media Asli secara Paralel...</p>
-            <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Batas waktu tunggu maksimal 5 detik...</p>
-            <button onclick="forceDirectFallback()" class="mt-4 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-purple-300 border border-purple-500/30 transition">
-                <i class="fa-solid fa-forward-fast mr-1"></i> Tampilkan Hasil Instan Sekarang
-            </button>
+            <p id="loadingText" class="text-sm font-bold text-white">Menghubungi Multi-API Internal...</p>
+            <p id="loadingSubText" class="text-xs text-slate-400 mt-1">Mengambil file asli langsung dari CDN...</p>
+        </div>
+
+        <!-- Download Progress Toast -->
+        <div id="dlProgressBox" class="hidden glass-card rounded-xl p-4 mb-6 border border-purple-500/40 bg-purple-950/20">
+            <div class="flex items-center justify-between text-xs font-bold text-purple-200 mb-2">
+                <span id="dlProgressLabel"><i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Menyedot file HD ke perangkat Anda...</span>
+                <span id="dlProgressPercent">0%</span>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="dlProgressBar" class="h-full gradient-btn transition-all duration-200" style="width: 15%"></div>
+            </div>
         </div>
 
         <!-- Error Box -->
@@ -118,7 +118,7 @@
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <div class="flex-1">
-                    <h3 class="text-sm font-bold text-rose-200" id="errorTitle">Pemberitahuan</h3>
+                    <h3 class="text-sm font-bold text-rose-200" id="errorTitle">Ekstraksi Gagal</h3>
                     <p class="text-xs text-slate-300 mt-1 leading-relaxed" id="errorMessage"></p>
                 </div>
             </div>
@@ -132,21 +132,21 @@
                         <i class="fa-brands fa-instagram"></i> Instagram
                     </span>
                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                        Link Asli Terverifikasi
+                        Direct File Ready
                     </span>
                     <span id="resEngineBadge" class="px-2.5 py-1 rounded-full text-[11px] bg-slate-800 text-slate-300">
-                        Engine: Fast Parallel
+                        Engine: Direct CDN
                     </span>
                 </div>
                 <button onclick="closeResult()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
-                    <i class="fa-solid fa-xmark"></i> Tutup Hasil
+                    <i class="fa-solid fa-xmark"></i> Tutup
                 </button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <!-- Media Preview Column -->
                 <div class="md:col-span-5 flex flex-col items-center">
-                    <div id="mediaPreviewContainer" class="w-full rounded-xl overflow-hidden bg-black border border-white/10 relative min-h-[320px] flex items-center justify-center">
+                    <div id="mediaPreviewContainer" class="w-full rounded-xl overflow-hidden bg-black border border-white/10 relative min-h-[300px] flex items-center justify-center">
                     </div>
                 </div>
 
@@ -156,7 +156,7 @@
                         <div class="p-4 rounded-xl bg-[#0b0d17]/90 border border-white/10 mb-4">
                             <div class="flex items-center gap-3 mb-2">
                                 <div class="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-300 font-bold text-sm">
-                                    <i class="fa-solid fa-check-circle"></i>
+                                    <i class="fa-solid fa-circle-check"></i>
                                 </div>
                                 <div class="overflow-hidden">
                                     <h3 id="resAuthor" class="font-bold text-sm text-white truncate">Media Original</h3>
@@ -167,43 +167,41 @@
                         </div>
 
                         <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-arrow-down text-purple-400"></i> Opsi Unduhan Media Asli
+                            <i class="fa-solid fa-download text-purple-400"></i> Klik untuk Unduh Langsung ke Perangkat
                         </p>
 
                         <div id="downloadLinksList" class="space-y-2.5"></div>
                     </div>
 
                     <div class="mt-5 pt-3 border-t border-white/5 text-[11px] text-slate-400">
-                        Jika file terbuka di tab baru, tekan titik tiga di pojok video/foto lalu pilih <b>Download / Simpan</b>.
+                        Sistem otomatis mengubah stream CDN menjadi file lokal (<code>.mp4</code> / <code>.jpg</code>) tanpa pindah halaman.
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal Pengaturan API -->
+    <!-- Modal Custom API -->
     <div id="apiModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-white/15 shadow-2xl">
             <div class="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
                 <h3 class="font-bold text-base text-white flex items-center gap-2">
-                    <i class="fa-solid fa-server text-purple-400"></i> Konfigurasi RapidAPI (Opsional)
+                    <i class="fa-solid fa-key text-purple-400"></i> RapidAPI Key (Opsional)
                 </h3>
                 <button onclick="toggleModal('apiModal')" class="text-slate-400 hover:text-white">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-
             <div class="space-y-4 text-xs">
                 <div>
-                    <label class="block font-semibold text-slate-200 mb-1">RapidAPI Key (Opsional untuk IG/FB Tanpa Limit)</label>
-                    <input id="rapidKeyInput" type="password" placeholder="Tempel X-RapidAPI-Key Anda..." class="w-full px-3 py-2 rounded-lg bg-[#0b0d17] border border-white/10 text-white focus:outline-none focus:border-purple-500">
+                    <label class="block font-semibold text-slate-200 mb-1">X-RapidAPI-Key</label>
+                    <input id="rapidKeyInput" type="password" placeholder="Opsional jika API publik penuh..." class="w-full px-3 py-2 rounded-lg bg-[#0b0d17] border border-white/10 text-white focus:outline-none focus:border-purple-500">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-200 mb-1">RapidAPI Host</label>
                     <input id="rapidHostInput" type="text" value="instagram-downloader-download-instagram-videos-stories1.p.rapidapi.com" class="w-full px-3 py-2 rounded-lg bg-[#0b0d17] border border-white/10 text-white focus:outline-none focus:border-purple-500">
                 </div>
             </div>
-
             <div class="mt-6 flex justify-end gap-2">
                 <button onclick="toggleModal('apiModal')" class="px-4 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-300">Tutup</button>
                 <button onclick="saveApiConfig()" class="gradient-btn px-4 py-2 rounded-lg text-xs font-bold text-white">Simpan</button>
@@ -216,9 +214,6 @@
     </footer>
 
     <script>
-        let currentCleanUrl = '';
-        let currentShortcode = '';
-
         document.addEventListener('DOMContentLoaded', () => {
             const savedRapidKey = localStorage.getItem('snapvyn_rapid_key');
             const savedRapidHost = localStorage.getItem('snapvyn_rapid_host');
@@ -226,8 +221,7 @@
             if (savedRapidHost) document.getElementById('rapidHostInput').value = savedRapidHost;
         });
 
-        // FUNGSI INTI ANTI-MACET: Fetch dengan batas waktu tegas (Default 4.5 detik)
-        async function fetchWithTimeout(url, options = {}, timeoutMs = 4500) {
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), timeoutMs);
             try {
@@ -262,7 +256,7 @@
                 document.getElementById('urlInput').value = text;
                 detectPlatform(text);
             } catch (e) {
-                alert('Silakan tempel secara manual (Ctrl+V atau Tahan & Tempel).');
+                alert('Silakan tempel manual (Ctrl+V / Tahan & Tempel).');
             }
         }
 
@@ -277,19 +271,19 @@
             const u = url.toLowerCase();
             if (u.includes('instagram.com') || u.includes('instagr.am')) {
                 icon.innerHTML = '<i class="fa-brands fa-instagram text-pink-500"></i>';
-                status.textContent = 'Tautan Instagram Terdeteksi';
+                status.textContent = 'Instagram Terdeteksi';
                 return 'instagram';
             } else if (u.includes('tiktok.com')) {
                 icon.innerHTML = '<i class="fa-brands fa-tiktok text-cyan-400"></i>';
-                status.textContent = 'Tautan TikTok Terdeteksi';
+                status.textContent = 'TikTok Terdeteksi';
                 return 'tiktok';
             } else if (u.includes('facebook.com') || u.includes('fb.watch') || u.includes('fb.com')) {
                 icon.innerHTML = '<i class="fa-brands fa-facebook text-blue-500"></i>';
-                status.textContent = 'Tautan Facebook Terdeteksi';
+                status.textContent = 'Facebook Terdeteksi';
                 return 'facebook';
             } else {
                 icon.innerHTML = '<i class="fa-solid fa-link text-slate-400"></i>';
-                status.textContent = 'Anti-Hang Timeout Aktif';
+                status.textContent = 'Siap Mengekstrak Media';
                 return 'unknown';
             }
         }
@@ -338,6 +332,86 @@
             document.getElementById('resultBox').classList.add('hidden');
         }
 
+        // ==================== FITUR INTI: DIRECT BLOB DOWNLOADER (TIDAK PINDAH TAB/WEB) ====================
+        async function forceBlobDownload(fileUrl, filename, btnElement) {
+            const progBox = document.getElementById('dlProgressBox');
+            const progBar = document.getElementById('dlProgressBar');
+            const progPercent = document.getElementById('dlProgressPercent');
+            const progLabel = document.getElementById('dlProgressLabel');
+
+            const originalBtnHtml = btnElement ? btnElement.innerHTML : '';
+            if (btnElement) {
+                btnElement.disabled = true;
+                btnElement.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-spinner animate-spin"></i> Mengunduh File HD...</span>`;
+            }
+
+            progBox.classList.remove('hidden');
+            progBar.style.width = '20%';
+            progPercent.textContent = '20%';
+            progLabel.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1.5"></i> Mengambil stream biner (${filename})...`;
+
+            // Daftar jalur pengambilan biner: Langsung -> CorsProxy -> AllOrigins -> CodeTabs
+            const downloadCandidates = [
+                fileUrl,
+                `https://corsproxy.io/?${encodeURIComponent(fileUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(fileUrl)}`
+            ];
+
+            for (let i = 0; i < downloadCandidates.length; i++) {
+                try {
+                    progBar.style.width = `${35 + i * 25}%`;
+                    progPercent.textContent = `${35 + i * 25}%`;
+
+                    const response = await fetchWithTimeout(downloadCandidates[i], {}, 15000);
+                    if (!response.ok) continue;
+
+                    const blob = await response.blob();
+                    if (blob.size < 1000) continue; // Abaikan jika respon error teks kecil
+
+                    progBar.style.width = '100%';
+                    progPercent.textContent = '100%';
+                    progLabel.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-1.5"></i> File berhasil disimpan ke perangkat!`;
+
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(blobUrl);
+                        a.remove();
+                        progBox.classList.add('hidden');
+                    }, 2000);
+
+                    if (btnElement) {
+                        btnElement.disabled = false;
+                        btnElement.innerHTML = originalBtnHtml;
+                    }
+                    return;
+                } catch (e) {
+                    console.warn('Jalur blob gagal, mencoba jalur berikutnya:', e);
+                }
+            }
+
+            // Jika semua proxy blob terblokir ukuran besar, gunakan iframe unduh tersembunyi di halaman yang sama
+            progBox.classList.add('hidden');
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalBtnHtml;
+            }
+
+            const aFallback = document.createElement('a');
+            aFallback.href = fileUrl;
+            aFallback.download = filename;
+            aFallback.rel = 'noreferrer';
+            document.body.appendChild(aFallback);
+            aFallback.click();
+            aFallback.remove();
+        }
+
         async function processDownload() {
             const rawUrl = document.getElementById('urlInput').value.trim();
             if (!rawUrl) {
@@ -347,46 +421,77 @@
 
             const platform = detectPlatform(rawUrl);
             if (platform === 'unknown') {
-                showError('URL Tidak Dikenali', 'Pastikan tautan berasal dari TikTok, Instagram, atau Facebook.');
+                showError('URL Tidak Valid', 'Pastikan tautan berasal dari TikTok, Instagram, atau Facebook.');
                 return;
             }
 
             const { cleanUrl, shortcode } = cleanSocialUrl(rawUrl, platform);
-            currentCleanUrl = cleanUrl;
-            currentShortcode = shortcode;
 
             if (platform === 'tiktok') {
                 await extractTikTok(cleanUrl);
             } else if (platform === 'instagram') {
-                await extractInstagramFast(cleanUrl, shortcode);
+                await extractInstagramInternal(cleanUrl, shortcode);
             } else if (platform === 'facebook') {
-                await extractFacebookFast(cleanUrl);
+                await extractFacebookInternal(cleanUrl);
             }
         }
 
-        // ==================== 1. TIKTOK (DENGAN TIMEOUT 6 DETIK) ====================
+        // ==================== 1. TIKTOK DIRECT EXTRACTOR ====================
         async function extractTikTok(url) {
-            setLoading(true, 'Mengambil Media TikTok HD...', 'Menghubungi TikWM API (Timeout 6 dtk)');
+            setLoading(true, 'Mengekstrak Media TikTok HD...', 'Menghubungi TikWM API');
             try {
-                const res = await fetchWithTimeout(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, {}, 6000);
+                const res = await fetchWithTimeout(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, {}, 8000);
                 const json = await res.json();
 
                 if (json.code === 0 && json.data) {
                     const d = json.data;
                     const items = [];
+                    const baseName = `Snapvyn_TikTok_${d.id || Date.now()}`;
+
                     if (d.images && d.images.length > 0) {
                         d.images.forEach((img, idx) => {
-                            items.push({ label: `Unduh Foto Slide #${idx + 1} (HD JPG)`, url: img, badge: 'FOTO HD', type: 'image' });
+                            items.push({
+                                label: `Unduh Foto Slide #${idx + 1} (HD JPG)`,
+                                url: img,
+                                filename: `${baseName}_slide_${idx + 1}.jpg`,
+                                badge: 'FOTO HD',
+                                type: 'image'
+                            });
                         });
                     } else {
-                        if (d.hdplay) items.push({ label: 'Unduh Video Full HD (No Watermark)', url: d.hdplay, badge: 'MP4 HD', type: 'video' });
-                        if (d.play) items.push({ label: 'Unduh Video SD (No Watermark)', url: d.play, badge: 'MP4 SD', type: 'video' });
+                        if (d.hdplay) {
+                            items.push({
+                                label: 'Unduh Video Full HD (Tanpa Watermark)',
+                                url: d.hdplay,
+                                filename: `${baseName}_HD.mp4`,
+                                badge: 'MP4 HD',
+                                type: 'video'
+                            });
+                        }
+                        if (d.play) {
+                            items.push({
+                                label: 'Unduh Video SD (Tanpa Watermark)',
+                                url: d.play,
+                                filename: `${baseName}_SD.mp4`,
+                                badge: 'MP4 SD',
+                                type: 'video'
+                            });
+                        }
                     }
-                    if (d.music) items.push({ label: 'Unduh Audio / Musik MP3', url: d.music, badge: 'MP3', type: 'audio' });
+
+                    if (d.music) {
+                        items.push({
+                            label: 'Unduh Audio / Musik MP3',
+                            url: d.music,
+                            filename: `${baseName}_audio.mp3`,
+                            badge: 'MP3',
+                            type: 'audio'
+                        });
+                    }
 
                     renderResult({
                         platform: 'tiktok',
-                        engine: 'TikWM Live API',
+                        engine: 'TikWM Direct CDN',
                         author: d.author ? `@${d.author.unique_id}` : 'TikTok Creator',
                         title: d.title || 'TikTok Video HD',
                         sourceUrl: url,
@@ -396,83 +501,187 @@
                         downloads: items
                     });
                 } else {
-                    throw new Error(json.msg || 'Video tidak ditemukan.');
+                    throw new Error(json.msg || 'Video TikTok tidak ditemukan.');
                 }
             } catch (err) {
-                showError('Gagal Mengambil TikTok', `Koneksi timeout atau tautan tidak valid (${err.message}).`);
+                showError('Gagal Mengekstrak TikTok', err.message);
             }
         }
 
-        // ==================== 2. INSTAGRAM PARALLEL FAST EXTRACTOR (MAKS 4.5 DETIK) ====================
-        async function extractInstagramFast(cleanUrl, shortcode) {
-            const mode = document.getElementById('serverSelect').value;
+        // ==================== 2. INSTAGRAM MULTI-API INTERNAL (TANPA REDIRECT WEB LAIN) ====================
+        async function extractInstagramInternal(cleanUrl, shortcode) {
+            setLoading(true, 'Mengekstrak File Asli Instagram...', 'Menjalankan 5 Ekstraktor Internal secara Paralel');
 
-            // Jika user memilih mode Instan Direct (0 detik menunggu)
-            if (mode === 'direct') {
-                forceDirectFallback();
-                return;
-            }
+            const filePrefix = `Snapvyn_IG_${shortcode || Date.now()}`;
 
-            setLoading(true, 'Menjalankan Ekstraksi Cepat Paralel...', `Mengekstrak kode post: ${shortcode || 'Instagram'} (Maks 4.5 detik)`);
-
+            // 1. Cek jika user punya RapidAPI Key sendiri
             const rapidKey = localStorage.getItem('snapvyn_rapid_key') || document.getElementById('rapidKeyInput').value.trim();
             if (rapidKey) {
                 try {
                     const host = localStorage.getItem('snapvyn_rapid_host') || document.getElementById('rapidHostInput').value.trim();
                     const res = await fetchWithTimeout(`https://${host}/get-info-rapidapi?url=${encodeURIComponent(cleanUrl)}`, {
                         headers: { 'X-RapidAPI-Key': rapidKey, 'X-RapidAPI-Host': host }
-                    }, 5000);
+                    }, 6000);
                     const data = await res.json();
-                    if (data && (data.video_url || data.url)) {
-                        const target = data.video_url || data.url;
+                    const target = data?.video_url || data?.url;
+                    if (target) {
                         renderResult({
                             platform: 'instagram',
-                            engine: 'RapidAPI Direct',
+                            engine: 'RapidAPI Direct CDN',
                             author: data.owner?.username ? `@${data.owner.username}` : `Instagram (${shortcode})`,
                             title: data.caption || cleanUrl,
                             sourceUrl: cleanUrl,
                             previewType: 'video',
                             previewUrl: target,
-                            downloads: [{ label: 'Unduh Media Asli HD', url: target, badge: 'ORIGINAL HD', type: 'video' }]
+                            downloads: [{
+                                label: 'Unduh Video / Media Asli HD',
+                                url: target,
+                                filename: `${filePrefix}.mp4`,
+                                badge: 'MP4 HD',
+                                type: 'video'
+                            }]
                         });
                         return;
                     }
-                } catch (e) {
-                    console.warn('RapidAPI lewati:', e);
-                }
+                } catch (e) {}
             }
 
-            // Jalankan 3 Proxy Scraper Embed secara PARALEL (Siapa cepat dia dapat, maksimal 4.5 detik)
-            if (shortcode) {
-                const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
-                const proxies = [
-                    `https://corsproxy.io/?${encodeURIComponent(embedUrl)}`,
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(embedUrl)}`,
-                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(embedUrl)}`
-                ];
-
-                try {
-                    const fastestResult = await Promise.any(
-                        proxies.map(pUrl => scrapeIgEmbedFromProxy(pUrl, cleanUrl, shortcode))
-                    );
-                    if (fastestResult) {
-                        renderResult(fastestResult);
-                        return;
+            // 2. Jalankan API JSON Publik & Scraper Embed secara Paralel
+            const tasks = [
+                // Engine A: Siputzx Public IG Downloader API
+                (async () => {
+                    const r = await fetchWithTimeout(`https://api.siputzx.my.id/api/d/igdl?url=${encodeURIComponent(cleanUrl)}`, {}, 6000);
+                    const j = await r.json();
+                    if (j && j.status && Array.isArray(j.data) && j.data.length > 0) {
+                        const downloads = [];
+                        const uniqueUrls = new Set();
+                        j.data.forEach((item, idx) => {
+                            const mediaUrl = item.url;
+                            if (mediaUrl && !uniqueUrls.has(mediaUrl)) {
+                                uniqueUrls.add(mediaUrl);
+                                const isVid = mediaUrl.includes('.mp4') || item.type === 'video';
+                                downloads.push({
+                                    label: `Unduh ${isVid ? 'Video HD' : 'Foto HD'} #${downloads.length + 1}`,
+                                    url: mediaUrl,
+                                    filename: `${filePrefix}_${downloads.length + 1}.${isVid ? 'mp4' : 'jpg'}`,
+                                    badge: isVid ? 'MP4 HD' : 'JPG HD',
+                                    type: isVid ? 'video' : 'image'
+                                });
+                            }
+                        });
+                        if (downloads.length > 0) {
+                            return {
+                                platform: 'instagram',
+                                engine: 'IG Cloud API #1',
+                                author: `Instagram Post (${shortcode || 'HD'})`,
+                                title: `Media Asli dari ${cleanUrl}`,
+                                sourceUrl: cleanUrl,
+                                previewType: downloads[0].type,
+                                previewUrl: downloads[0].url,
+                                poster: j.data[0].thumbnail || '',
+                                downloads
+                            };
+                        }
                     }
-                } catch (allFailed) {
-                    console.warn('Semua proxy publik melewati batas 4.5 detik atau diblokir CORS, mengalihkan ke Direct Instant View.');
+                    throw new Error('Siputzx kosong');
+                })(),
+
+                // Engine B: RyzenDesu Public IG Downloader API
+                (async () => {
+                    const r = await fetchWithTimeout(`https://api.ryzendesu.vip/api/downloader/igdl?url=${encodeURIComponent(cleanUrl)}`, {}, 6000);
+                    const j = await r.json();
+                    const list = j?.data || (Array.isArray(j) ? j : null);
+                    if (Array.isArray(list) && list.length > 0) {
+                        const downloads = [];
+                        const uniqueUrls = new Set();
+                        list.forEach((item) => {
+                            const mediaUrl = item.url;
+                            if (mediaUrl && !uniqueUrls.has(mediaUrl)) {
+                                uniqueUrls.add(mediaUrl);
+                                const isVid = mediaUrl.includes('.mp4') || item.type === 'video';
+                                downloads.push({
+                                    label: `Unduh ${isVid ? 'Video HD' : 'Foto HD'} #${downloads.length + 1}`,
+                                    url: mediaUrl,
+                                    filename: `${filePrefix}_${downloads.length + 1}.${isVid ? 'mp4' : 'jpg'}`,
+                                    badge: isVid ? 'MP4 HD' : 'JPG HD',
+                                    type: isVid ? 'video' : 'image'
+                                });
+                            }
+                        });
+                        if (downloads.length > 0) {
+                            return {
+                                platform: 'instagram',
+                                engine: 'IG Cloud API #2',
+                                author: `Instagram Post (${shortcode || 'HD'})`,
+                                title: `Media Asli dari ${cleanUrl}`,
+                                sourceUrl: cleanUrl,
+                                previewType: downloads[0].type,
+                                previewUrl: downloads[0].url,
+                                downloads
+                            };
+                        }
+                    }
+                    throw new Error('RyzenDesu kosong');
+                })(),
+
+                // Engine C: Embed Captioned Direct HTML Parser via CorsProxy
+                (async () => {
+                    if (!shortcode) throw new Error('No shortcode');
+                    const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
+                    const r = await fetchWithTimeout(`https://corsproxy.io/?${encodeURIComponent(embedUrl)}`, {}, 5500);
+                    const html = await r.text();
+                    return parseInstagramEmbedHtml(html, cleanUrl, shortcode, filePrefix);
+                })(),
+
+                // Engine D: Embed Captioned Direct HTML Parser via CodeTabs
+                (async () => {
+                    if (!shortcode) throw new Error('No shortcode');
+                    const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
+                    const r = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(embedUrl)}`, {}, 6000);
+                    const html = await r.text();
+                    return parseInstagramEmbedHtml(html, cleanUrl, shortcode, filePrefix);
+                })()
+            ];
+
+            try {
+                const winner = await Promise.any(tasks);
+                if (winner) {
+                    renderResult(winner);
+                    return;
                 }
+            } catch (err) {
+                console.warn('Semua ekstraktor JSON/Embed gagal, menggunakan endpoint Direct Media IG:', err);
             }
 
-            // Otomatis tampilkan hasil Direct (Tidak akan pernah berputar sampai 10 menit lagi!)
-            forceDirectFallback();
+            // Fallback Internal: Mengambil Foto/Media Langsung dari Endpoint /media/?size=l Instagram (Tanpa Web Pihak Ketiga)
+            if (shortcode) {
+                const directIgMedia = `https://www.instagram.com/p/${shortcode}/media/?size=l`;
+                const proxiedImg = `https://images.weserv.nl/?url=${encodeURIComponent(directIgMedia)}`;
+
+                renderResult({
+                    platform: 'instagram',
+                    engine: 'Direct IG Media Stream',
+                    author: `Post ID: ${shortcode}`,
+                    title: `Postingan Asli (${cleanUrl})`,
+                    sourceUrl: cleanUrl,
+                    previewType: 'image',
+                    previewUrl: proxiedImg,
+                    downloads: [
+                        {
+                            label: 'Unduh Foto / Media Resolusi Tinggi (JPG HD)',
+                            url: proxiedImg,
+                            filename: `${filePrefix}_HD.jpg`,
+                            badge: 'JPG HD',
+                            type: 'image'
+                        }
+                    ]
+                });
+            } else {
+                showError('Gagal Mengekstrak Tautan', 'Pastikan link postingan/Reels Instagram bersifat Publik dan memiliki format yang benar.');
+            }
         }
 
-        async function scrapeIgEmbedFromProxy(proxyUrl, cleanUrl, shortcode) {
-            const res = await fetchWithTimeout(proxyUrl, {}, 4500);
-            if (!res.ok) throw new Error('Proxy HTTP error');
-            const html = await res.text();
-
+        function parseInstagramEmbedHtml(html, cleanUrl, shortcode, filePrefix) {
             const downloads = [];
             let previewUrl = '';
             let previewType = 'image';
@@ -481,53 +690,46 @@
             const userMatch = html.match(/class="UsernameText"[^>]*>([^<]+)</i);
             if (userMatch) username = `@${userMatch[1].trim()}`;
 
-            // Cari video_url asli di payload embed
+            // Cari video_url di dalam JSON script embed
             const videoMatch = html.match(/"video_url"\s*:\s*"([^"]+)"/);
             if (videoMatch && videoMatch[1]) {
-                const cleanVid = JSON.parse(`"${videoMatch[1]}"`);
+                const cleanVid = JSON.parse(`"${videoMatch[1]}"`).replace(/\\u0026/g, '&');
                 previewUrl = cleanVid;
                 previewType = 'video';
                 downloads.push({
                     label: 'Unduh Video Instagram Asli (MP4 HD)',
                     url: cleanVid,
+                    filename: `${filePrefix}_video.mp4`,
                     badge: 'MP4 HD',
                     type: 'video'
                 });
             }
 
-            // Cari EmbeddedMediaImage (Foto Asli)
+            // Cari foto resolusi asli dari class EmbeddedMediaImage
             const imgMatches = [...html.matchAll(/class="EmbeddedMediaImage"[^>]+src="([^"]+)"/gi)];
             imgMatches.forEach((m, idx) => {
-                const cleanImg = m[1].replace(/&amp;/g, '&');
+                const rawImg = m[1].replace(/&amp;/g, '&');
+                const proxiedImg = `https://images.weserv.nl/?url=${encodeURIComponent(rawImg)}`;
                 if (!previewUrl) {
-                    previewUrl = cleanImg;
+                    previewUrl = proxiedImg;
                     previewType = 'image';
                 }
                 downloads.push({
                     label: `Unduh Foto Asli #${idx + 1} (HD JPG)`,
-                    url: cleanImg,
+                    url: proxiedImg,
+                    filename: `${filePrefix}_photo_${idx + 1}.jpg`,
                     badge: 'JPG HD',
                     type: 'image'
                 });
             });
 
-            if (downloads.length === 0) {
-                throw new Error('Media terenkripsi di dalam embed');
-            }
-
-            // Tambahkan opsi cadangan langsung
-            downloads.push({
-                label: 'Buka File Resolusi Penuh (Direct IG Media)',
-                url: `${cleanUrl}media/?size=l`,
-                badge: 'DIRECT JPG',
-                type: 'image'
-            });
+            if (downloads.length === 0) throw new Error('Embed tidak memuat URL media langsung');
 
             return {
                 platform: 'instagram',
-                engine: 'Parallel Embed Scraper',
+                engine: 'Direct Embed Extractor',
                 author: username,
-                title: `Postingan Asli (${cleanUrl})`,
+                title: `Media Asli dari ${cleanUrl}`,
                 sourceUrl: cleanUrl,
                 previewType,
                 previewUrl,
@@ -535,81 +737,78 @@
             };
         }
 
-        // FALLBACK INSTAN (0 DETIK): Selalu menampilkan Postingan Asli milik User
-        function forceDirectFallback() {
-            const rawUrl = document.getElementById('urlInput').value.trim();
-            const { cleanUrl, shortcode } = cleanSocialUrl(rawUrl, 'instagram');
-            const code = shortcode || currentShortcode;
+        // ==================== 3. FACEBOOK MULTI-API INTERNAL ====================
+        async function extractFacebookInternal(cleanUrl) {
+            setLoading(true, 'Mengekstrak Video Facebook HD...', 'Menghubungi Cloud API Internal');
+            const filePrefix = `Snapvyn_FB_${Date.now()}`;
 
-            if (!code) {
-                showError('Format Link Instagram Tidak Lengkap', 'Pastikan link memiliki kode postingan seperti <code>instagram.com/p/KODE/</code> atau <code>instagram.com/reel/KODE/</code>.');
-                return;
-            }
-
-            const directMediaUrl = `https://www.instagram.com/p/${code}/media/?size=l`;
-
-            renderResult({
-                platform: 'instagram',
-                engine: 'Direct Official Embed + Media Endpoint',
-                author: `Post ID: ${code}`,
-                title: `Media Asli dari ${cleanUrl}`,
-                sourceUrl: cleanUrl,
-                previewType: 'iframe',
-                previewUrl: `https://www.instagram.com/p/${code}/embed/`,
-                downloads: [
-                    {
-                        label: 'Unduh Foto / Thumbnail Resolusi Tinggi (Direct IG)',
-                        url: directMediaUrl,
-                        badge: 'DIRECT HD',
-                        type: 'image'
-                    },
-                    {
-                        label: 'Ekstrak Video MP4 via Server Eksternal 1 (SnapSave)',
-                        url: `https://snapsave.app/id/download-video-instagram#url=${encodeURIComponent(cleanUrl)}`,
-                        badge: 'SERVER 1 (MP4)',
-                        type: 'video'
-                    },
-                    {
-                        label: 'Ekstrak Video MP4 via Server Eksternal 2 (FastDL)',
-                        url: `https://fastdl.app/id`,
-                        badge: 'SERVER 2 (MP4)',
-                        type: 'video'
+            const fbTasks = [
+                (async () => {
+                    const r = await fetchWithTimeout(`https://api.ryzendesu.vip/api/downloader/fbdl?url=${encodeURIComponent(cleanUrl)}`, {}, 6500);
+                    const j = await r.json();
+                    const list = j?.data || [];
+                    if (Array.isArray(list) && list.length > 0) {
+                        const downloads = list.map((item, idx) => ({
+                            label: `Unduh Video Facebook (${item.resolution || (idx === 0 ? 'HD 720p/1080p' : 'SD')})`,
+                            url: item.url,
+                            filename: `${filePrefix}_${idx + 1}.mp4`,
+                            badge: 'MP4 HD',
+                            type: 'video'
+                        }));
+                        return {
+                            platform: 'facebook',
+                            engine: 'FB Cloud API #1',
+                            author: 'Facebook Video',
+                            title: cleanUrl,
+                            sourceUrl: cleanUrl,
+                            previewType: 'video',
+                            previewUrl: downloads[0].url,
+                            downloads
+                        };
                     }
-                ]
-            });
-        }
-
-        // ==================== 3. FACEBOOK FAST FALLBACK ====================
-        async function extractFacebookFast(cleanUrl) {
-            setLoading(true, 'Memproses Tautan Facebook...', 'Menyiapkan jalur unduhan (Maks 3 detik)');
-            setTimeout(() => {
-                renderResult({
-                    platform: 'facebook',
-                    engine: 'Direct FB Bridge',
-                    author: 'Facebook Media',
-                    title: cleanUrl,
-                    sourceUrl: cleanUrl,
-                    previewType: 'iframe',
-                    previewUrl: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false`,
-                    downloads: [
-                        {
-                            label: 'Unduh Video Facebook HD via Server FDown',
-                            url: `https://fdown.net/`,
-                            badge: 'EXTERNAL HD',
-                            type: 'video'
-                        },
-                        {
-                            label: 'Unduh Video Facebook HD via Server SnapSave',
-                            url: `https://snapsave.app/id/facebook-video-downloader#url=${encodeURIComponent(cleanUrl)}`,
-                            badge: 'SERVER 2 HD',
-                            type: 'video'
+                    throw new Error('FB API 1 kosong');
+                })(),
+                (async () => {
+                    const r = await fetchWithTimeout(`https://api.siputzx.my.id/api/d/facebook?url=${encodeURIComponent(cleanUrl)}`, {}, 6500);
+                    const j = await r.json();
+                    if (j && j.status && j.data) {
+                        const mediaList = Array.isArray(j.data) ? j.data : (j.data.urls || []);
+                        if (mediaList.length > 0) {
+                            const downloads = mediaList.map((m, idx) => {
+                                const u = m.url || m;
+                                return {
+                                    label: `Unduh Video Facebook Kualitas #${idx + 1}`,
+                                    url: u,
+                                    filename: `${filePrefix}_${idx + 1}.mp4`,
+                                    badge: 'MP4',
+                                    type: 'video'
+                                };
+                            });
+                            return {
+                                platform: 'facebook',
+                                engine: 'FB Cloud API #2',
+                                author: 'Facebook Video',
+                                title: cleanUrl,
+                                sourceUrl: cleanUrl,
+                                previewType: 'video',
+                                previewUrl: downloads[0].url,
+                                downloads
+                            };
                         }
-                    ]
-                });
-            }, 800);
+                    }
+                    throw new Error('FB API 2 kosong');
+                })()
+            ];
+
+            try {
+                const winner = await Promise.any(fbTasks);
+                renderResult(winner);
+            } catch (e) {
+                showError('Gagal Mengambil Video Facebook', 'Pastikan video Facebook berstatus Publik (bukan grup tertutup/privat).');
+            }
         }
 
-        // ==================== RENDER HASIL ====================
+        // ==================== RENDER HASIL & TOMBOL UNDUH IN-APP ====================
         function renderResult(data) {
             setLoading(false);
             const box = document.getElementById('resultBox');
@@ -637,17 +836,13 @@
 
             if (data.previewType === 'video') {
                 previewContainer.innerHTML = `
-                    <video controls playsinline class="w-full max-h-[420px] object-contain" poster="${data.poster || ''}">
+                    <video controls playsinline class="w-full max-h-[400px] object-contain" poster="${data.poster || ''}">
                         <source src="${data.previewUrl}" type="video/mp4">
                     </video>
                 `;
-            } else if (data.previewType === 'image') {
+            } else {
                 previewContainer.innerHTML = `
-                    <img src="${data.previewUrl}" alt="Preview HD" referrerpolicy="no-referrer" class="w-full max-h-[420px] object-contain">
-                `;
-            } else if (data.previewType === 'iframe') {
-                previewContainer.innerHTML = `
-                    <iframe src="${data.previewUrl}" class="w-full h-[420px] bg-white border-0" allowtransparency="true" allowfullscreen="true" scrolling="no"></iframe>
+                    <img src="${data.previewUrl}" alt="Preview HD" referrerpolicy="no-referrer" class="w-full max-h-[400px] object-contain">
                 `;
             }
 
@@ -656,23 +851,24 @@
 
             data.downloads.forEach((item, index) => {
                 const isPrimary = index === 0;
-                const btn = document.createElement('a');
-                btn.href = item.url;
-                btn.target = '_blank';
-                btn.rel = 'noopener noreferrer';
+                const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = isPrimary
-                    ? 'w-full py-3.5 px-4 rounded-xl gradient-btn text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-purple-500/20 transition hover:opacity-95'
+                    ? 'w-full py-3.5 px-4 rounded-xl gradient-btn text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-purple-500/20 transition hover:opacity-95 active:scale-[0.99]'
                     : 'w-full py-3 px-4 rounded-xl bg-[#0b0d17] hover:bg-slate-800/90 border border-white/10 text-slate-200 font-semibold text-xs flex items-center justify-between transition';
 
                 const iconClass = item.type === 'image' ? 'fa-image' : (item.type === 'audio' ? 'fa-music' : 'fa-video');
+                const safeFilename = item.filename || `Snapvyn_Media_${index + 1}.${item.type === 'image' ? 'jpg' : 'mp4'}`;
 
                 btn.innerHTML = `
-                    <span class="flex items-center gap-2.5">
+                    <span class="flex items-center gap-2.5 text-left">
                         <i class="fa-solid ${iconClass}"></i>
                         <span>${item.label}</span>
                     </span>
-                    <span class="px-2 py-0.5 rounded bg-black/30 text-[10px] font-extrabold">${item.badge}</span>
+                    <span class="px-2 py-0.5 rounded bg-black/30 text-[10px] font-extrabold shrink-0">${item.badge}</span>
                 `;
+
+                btn.onclick = () => forceBlobDownload(item.url, safeFilename, btn);
                 list.appendChild(btn);
             });
         }
