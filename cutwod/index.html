@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuSuite Pro - Word to PDF & PDF Tools Tanpa Limit</title>
+  <!-- Tailwind CSS untuk UI Modern -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Mammoth.js untuk membaca file .docx tanpa limit halaman -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- html2pdf.js untuk render ke PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- pdf-lib untuk fitur Merge PDF & Watermark -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    /* Styling kertas pratinjau dokumen */
+    #doc-preview h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; }
+    #doc-preview h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.6rem; }
+    #doc-preview p { margin-bottom: 0.75rem; line-height: 1.6; }
+    #doc-preview table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    #doc-preview th, #doc-preview td { border: 1px solid #cbd5e1; padding: 0.5rem; }
+    #doc-preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    #doc-preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+
+    /* Mode Cetak Asli (Tanpa Limit Halaman & Tajam) */
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl font-extrabold tracking-tight">DocuSuite Pro</span>
+        <span class="bg-indigo-500 text-xs px-2.5 py-1 rounded-full font-medium">Unlimited Pages</span>
+      </div>
+      <!-- Navigasi Tab Fitur -->
+      <nav class="flex gap-2">
+        <button onclick="switchTab('word2pdf')" id="tab-word2pdf" class="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-indigo-700 shadow-sm transition">
+          Word ke PDF & Editor
+        </button>
+        <button onclick="switchTab('merge')" id="tab-merge" class="px-4 py-2 rounded-lg text-sm font-semibold text-indigo-100 hover:bg-indigo-600 transition">
+          Gabung PDF (Merge)
+        </button>
+        <button onclick="switchTab('watermark')" id="tab-watermark" class="px-4 py-2 rounded-lg text-sm font-semibold text-indigo-100 hover:bg-indigo-600 transition">
+          Watermark & Nomor Halaman
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- ==================== TAB 1: WORD KE PDF ==================== -->
+    <section id="section-word2pdf" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Panel Kontrol Kiri -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-5 h-fit">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">1. Unggah File Word (.docx)</h2>
+          <p class="text-xs text-slate-500 mb-3">Diproses langsung di perangkat Anda tanpa batas halaman.</p>
+          <label class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 rounded-xl p-6 cursor-pointer hover:bg-indigo-50 transition">
+            <span class="text-sm font-semibold text-indigo-600">Pilih File .DOCX</span>
+            <span id="file-name" class="text-xs text-slate-400 mt-1">Atau klik untuk mencari file</span>
+            <input type="file" id="docx-input" accept=".docx" class="hidden" onchange="handleDocxUpload(event)">
+          </label>
+        </div>
+
+        <!-- Statistik Dokumen Otomatis -->
+        <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 grid grid-cols-2 gap-2 text-center">
+          <div>
+            <span class="block text-xs text-slate-500">Jumlah Kata</span>
+            <span id="stat-words" class="font-bold text-base text-slate-800">0</span>
+          </div>
+          <div>
+            <span class="block text-xs text-slate-500">Jumlah Karakter</span>
+            <span id="stat-chars" class="font-bold text-base text-slate-800">0</span>
+          </div>
+        </div>
+
+        <!-- Pengaturan Halaman PDF -->
+        <div class="flex flex-col gap-3">
+          <h3 class="text-sm font-bold text-slate-700 border-b pb-1">2. Pengaturan Halaman</h3>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs font-medium text-slate-600">Ukuran Kertas</label>
+              <select id="pdf-format" class="w-full mt-1 border rounded-lg p-2 text-sm bg-white">
+                <option value="a4">A4</option>
+                <option value="letter">Letter</option>
+                <option value="legal">Legal</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">Orientasi</label>
+              <select id="pdf-orientation" class="w-full mt-1 border rounded-lg p-2 text-sm bg-white">
+                <option value="portrait">Portrait (Tegak)</option>
+                <option value="landscape">Landscape (Mendatar)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-medium text-slate-600">Margin Halaman (mm)</label>
+            <input type="number" id="pdf-margin" value="15" min="0" max="50" class="w-full mt-1 border rounded-lg p-2 text-sm">
+          </div>
+        </div>
+
+        <!-- Tombol Ekspor -->
+        <div class="flex flex-col gap-2 pt-2">
+          <button onclick="downloadDirectPDF()" id="btn-download-pdf" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition text-sm">
+            Unduh PDF Langsung
+          </button>
+          <button onclick="window.print()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow transition text-sm">
+            Mode Cetak Cepat (Ratusan Halaman)
+          </button>
+          <button onclick="exportHTML()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 px-4 rounded-lg transition text-xs">
+            Ekspor sebagai HTML (.html)
+          </button>
+        </div>
+      </div>
+
+      <!-- Area Editor & Pratinjau Kanan -->
+      <div class="lg:col-span-2 flex flex-col gap-3">
+        <div class="bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+          <span class="text-sm font-bold text-slate-700">Live Editor (Klik teks di bawah untuk mengedit langsung sebelum di-PDF-kan)</span>
+          <button onclick="clearEditor()" class="text-xs text-red-600 hover:underline font-medium">Bersihkan Teks</button>
+        </div>
+
+        <!-- Kertas Pratinjau yang Bisa Diedit -->
+        <div id="print-area" class="bg-white p-10 rounded-xl shadow-sm border border-slate-200 min-h-[600px]">
+          <div id="doc-preview" contenteditable="true" oninput="updateStats()" class="outline-none min-h-[520px] text-slate-800">
+            <h1>Judul Dokumen Anda</h1>
+            <p>Unggah file <strong>.docx</strong> melalui panel di sebelah kiri, atau ketik dan tempelkan dokumen Anda langsung di area ini. Anda dapat mengedit teks, memperbaiki salah ketik, atau menghapus bagian yang tidak diperlukan sebelum mengunduhnya menjadi PDF.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: GABUNG PDF (MERGE) ==================== -->
+    <section id="section-merge" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <h2 class="text-xl font-bold text-slate-800 mb-1">Gabungkan Beberapa File PDF (Merge PDF)</h2>
+      <p class="text-sm text-slate-500 mb-4">Pilih 2 atau lebih file PDF untuk digabungkan menjadi satu dokumen utuh tanpa batas ukuran halaman.</p>
+      
+      <input type="file" id="merge-input" accept=".pdf" multiple class="block w-full text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-4 cursor-pointer">
+      
+      <button onclick="mergePDFs()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow transition">
+        Proses & Unduh PDF Gabungan
+      </button>
+      <p id="merge-status" class="text-xs text-center text-slate-500 mt-3"></p>
+    </section>
+
+    <!-- ==================== TAB 3: WATERMARK & NOMOR HALAMAN ==================== -->
+    <section id="section-watermark" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <h2 class="text-xl font-bold text-slate-800 mb-1">Tambah Watermark & Nomor Halaman Otomatis</h2>
+      <p class="text-sm text-slate-500 mb-4">Beri cap teks (Watermark) dan penomoran halaman otomatis pada seluruh halaman PDF Anda.</p>
+      
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih File PDF</label>
+          <input type="file" id="wm-input" accept=".pdf" class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Teks Watermark (Kosongkan jika hanya ingin nomor halaman)</label>
+          <input type="text" id="wm-text" placeholder="Contoh: DOKUMEN RAHASIA / DRAFT" class="w-full border rounded-lg p-2.5 text-sm">
+        </div>
+
+        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" id="wm-pagenum" checked class="rounded text-indigo-600">
+          Tambahkan Nomor Halaman di bagian bawah setiap halaman (Halaman X dari Y)
+        </label>
+
+        <button onclick="applyWatermarkAndPageNumbers()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow transition">
+          Terapkan & Unduh PDF
+        </button>
+        <p id="wm-status" class="text-xs text-center text-slate-500 mt-2"></p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. Navigasi Tab
+    function switchTab(tab) {
+      ['word2pdf', 'merge', 'watermark'].forEach(id => {
+        document.getElementById('section-' + id).classList.add('hidden');
+        const btn = document.getElementById('tab-' + id);
+        btn.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-indigo-100 hover:bg-indigo-600 transition';
+      });
+      document.getElementById('section-' + tab).classList.remove('hidden');
+      document.getElementById('tab-' + tab).className = 'px-4 py-2 rounded-lg text-sm font-semibold bg-white text-indigo-700 shadow-sm transition';
+    }
+
+    // 2. Baca File Word (.docx) dengan Mammoth.js
+    function handleDocxUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('file-name').innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(loadEvent) {
+        const arrayBuffer = loadEvent.target.result;
+        mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+          .then(function(result) {
+            document.getElementById('doc-preview').innerHTML = result.value;
+            updateStats();
+          })
+          .catch(function(err) {
+            alert('Gagal membaca file Word: ' + err.message);
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 3. Hitung Statistik Kata & Karakter
+    function updateStats() {
+      const text = document.getElementById('doc-preview').innerText.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      document.getElementById('stat-words').innerText = words.toLocaleString('id-ID');
+      document.getElementById('stat-chars').innerText = text.length.toLocaleString('id-ID');
+    }
+    updateStats();
+
+    function clearEditor() {
+      document.getElementById('doc-preview').innerHTML = '';
+      updateStats();
+    }
+
+    // 4. Unduh PDF Langsung via html2pdf.js
+    function downloadDirectPDF() {
+      const element = document.getElementById('doc-preview');
+      const format = document.getElementById('pdf-format').value;
+      const orientation = document.getElementById('pdf-orientation').value;
+      const margin = parseInt(document.getElementById('pdf-margin').value) || 15;
+      const btn = document.getElementById('btn-download-pdf');
+
+      btn.innerText = 'Memproses PDF...';
+      btn.disabled = true;
+
+      const opt = {
+        margin:       margin,
+        filename:     'Dokumen-Konversi.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: format, orientation: orientation },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerText = 'Unduh PDF Langsung';
+        btn.disabled = false;
+      });
+    }
+
+    // 5. Ekspor ke File HTML
+    function exportHTML() {
+      const content = document.getElementById('doc-preview').innerHTML;
+      const blob = new Blob(['<!DOCTYPE html><html><head><meta charset="utf-8"><title>Export</title></head><body>' + content + '</body></html>'], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dokumen.html';
+      a.click();
+    }
+
+    // 6. Fitur Gabung PDF (Merge PDF) menggunakan pdf-lib
+    async function mergePDFs() {
+      const input = document.getElementById('merge-input');
+      const status = document.getElementById('merge-status');
+      if (input.files.length < 2) {
+        alert('Pilih minimal 2 file PDF untuk digabungkan.');
+        return;
+      }
+
+      status.innerText = 'Sedang menggabungkan halaman PDF...';
+      try {
+        const { PDFDocument } = PDFLib;
+        const mergedPdf = await PDFDocument.create();
+
+        for (let file of input.files) {
+          const bytes = await file.arrayBuffer();
+          const pdf = await PDFDocument.load(bytes);
+          const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          copiedPages.forEach((page) => mergedPdf.addPage(page));
+        }
+
+        const pdfBytes = await mergedPdf.save();
+        downloadBlob(pdfBytes, 'Merged-Document.pdf', 'application/pdf');
+        status.innerText = 'Berhasil digabungkan!';
+      } catch (e) {
+        status.innerText = 'Gagal menggabungkan PDF: ' + e.message;
+      }
+    }
+
+    // 7. Fitur Watermark & Nomor Halaman Otomatis menggunakan pdf-lib
+    async function applyWatermarkAndPageNumbers() {
+      const input = document.getElementById('wm-input');
+      const wmText = document.getElementById('wm-text').value.trim();
+      const addPageNum = document.getElementById('wm-pagenum').checked;
+      const status = document.getElementById('wm-status');
+
+      if (!input.files[0]) {
+        alert('Pilih file PDF terlebih dahulu.');
+        return;
+      }
+
+      status.innerText = 'Memproses halaman...';
+      try {
+        const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+        const bytes = await input.files[0].arrayBuffer();
+        const pdfDoc = await PDFDocument.load(bytes);
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const pages = pdfDoc.getPages();
+        const total = pages.length;
+
+        pages.forEach((page, idx) => {
+          const { width, height } = page.getSize();
+
+          if (wmText) {
+            page.drawText(wmText, {
+              x: width / 5,
+              y: height / 2,
+              size: 38,
+              font: helveticaFont,
+              color: rgb(0.75, 0.75, 0.75),
+              opacity: 0.35,
+              rotate: degrees(35),
+            });
+          }
+
+          if (addPageNum) {
+            const pageLabel = `Halaman ${idx + 1} dari ${total}`;
+            page.drawText(pageLabel, {
+              x: width / 2 - 40,
+              y: 20,
+              size: 10,
+              font: helveticaFont,
+              color: rgb(0.3, 0.3, 0.3),
+            });
+          }
+        });
+
+        const pdfBytes = await pdfDoc.save();
+        downloadBlob(pdfBytes, 'Processed-Document.pdf', 'application/pdf');
+        status.innerText = 'Selesai diproses!';
+      } catch (e) {
+        status.innerText = 'Terjadi kesalahan: ' + e.message;
+      }
+    }
+
+    function downloadBlob(bytes, filename, mimeType) {
+      const blob = new Blob([bytes], { type: mimeType });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+  </script>
+</body>
+</html>
